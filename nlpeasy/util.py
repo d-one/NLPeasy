@@ -214,6 +214,14 @@ def formatTime_ns(eta):
     return eta_format
 
 
+if 'time_ns' in dir(time):
+    def _time_ns():
+        return time.time_ns()
+else:
+    def _time_ns():
+        return int(time.time() * 1e9)
+
+
 class Tictoc(object):
     def __init__(self, output='print', additive=False):
         self.stack = []
@@ -224,9 +232,9 @@ class Tictoc(object):
     def tic(self, name):
         if self._summarizer != False:
             self._summarizer[name]
-        self.stack.append( (name, time.time_ns()) )
+        self.stack.append( (name, _time_ns()) )
     def toc(self):
-        stop = time.time_ns()
+        stop = _time_ns()
         name, start = self.stack.pop()
         dur = stop - start
         if self.output == 'print':
@@ -248,4 +256,3 @@ class Tictoc(object):
             print(f"Warning: stack is not empty but has {len(self.stack)} items")
         for k,v in self._summarizer.items():
             print(f"{k}: {formatTime_ns(v)}")
-
