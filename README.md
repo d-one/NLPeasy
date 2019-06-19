@@ -13,6 +13,7 @@ Installation
 To install this module in Dev-mode, i.e. change files and reload module:
 ```bash
 git clone https://github.com/nlpeasy/nlpeasy
+cd nlpeasy
 pip install -e .
 ```
 
@@ -52,21 +53,24 @@ nips.to_pickle('./nips.pickle)
 # setup stages in the NLP pipeline and set textfields
 pipeline = ne.Pipeline(index='nips', textCols=['message','title'], suggests='message_subj', dateCol='year')
 
-pipeline.add(ne.RegexTag(r'\$([^$]+)\$', ['message'], 'math'))
-pipeline.add(ne.VaderSentiment('message', 'sentiment'))
+pipeline += ne.RegexTag(r'\$([^$]+)\$', ['message'], 'math')
+pipeline += ne.VaderSentiment('message', 'sentiment')
 
 # This uses `en_core_web_sm` so download the model first via:
 # python -m spacy download en_core_web_sm
-pipeline.add(ne.SpacyEnrichment(nlp='en_core_web_sm', cols=['message','title']))
+pipeline += ne.SpacyEnrichment(nlp='en_core_web_sm', cols=['message','title'])
 
 # Future possibilities
-# pipeline.add(ne.SynonymTags(['Neural', 'Bayesian'], topn=10), ['message'], 'hypekeyword')
-# pipeline.add(ne.Split(', '), ['author'])
+# pipeline += ne.SynonymTags(['Neural', 'Bayesian'], topn=10, ['message'], 'hypekeyword')
+# pipeline += ne.Split(', ', ['author'])
 
 # start and setup elastic and kibana
 pipeline.setup_elastic()
 
 nips_enriched = pipeline.process(nips, writeElastic=True)
+
+# Create Kibana Dashboard of all the columns
+pipeline.setup_kibana(texts=nips)
 
 # open Kibana in webbrowser
 ne.showKibana()
@@ -75,7 +79,12 @@ ne.showKibana()
 Features
 --------
 
-* TODO
+* Pandas based pipeline
+* Support for any extensions - now includes some for Regex, spaCy, VaderSentiment
+* Write results to ElasticSearch
+* Automatic Kibana dashboard generation
+* Have Elastic started in Docker if it is not installed locally or remotely
+* Apache License 2.0
 
 Credits
 -------

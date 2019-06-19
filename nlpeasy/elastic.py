@@ -74,7 +74,7 @@ class ElasticStack(object):
 
 
     # TODO languages, synonyms, 
-    def createIndex(self, index='texts',doctype='text',create=True,
+    def createIndex(self, index='texts',doctype='_doc',create=True,
             textCols=[], tagCols=[], geoPointCols = [], synonyms=[], dateCol=None, lang='english',
             deleteOld=True, verbose=False):
         # assert lang == 'english'
@@ -91,6 +91,8 @@ class ElasticStack(object):
             #"_timestamp": {"enabled": "false"},
             "properties": properties
         }
+        if self.es.info()['version']['number'] < '7':
+            mapping = { doctype: mapping }
         if create:
             filters, analyzer = self.getAnalysis(lang, synonyms)
             body={
@@ -120,9 +122,7 @@ class ElasticStack(object):
                     }
                 },
 
-                "mappings": {
-                    doctype: mapping
-                }
+                "mappings": mapping
             }
             if verbose:
                 print(body)
@@ -136,7 +136,7 @@ class ElasticStack(object):
         else:
             self.es.indices.put_mapping(index=index, doc_type=doctype, body=mapping)
     
-    def loadDocs(self, index, texts, doctype='text', dateCol=None, deleteOld=False, chunksize=1000, idCol=None,
+    def loadDocs(self, index, texts, doctype='_doc', dateCol=None, deleteOld=False, chunksize=1000, idCol=None,
                 suggestCol=None, showProgbar=True):
         if idCol is None:
             idCol = texts.index

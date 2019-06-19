@@ -11,7 +11,7 @@ from . import kibana
 from .util import chunker, Tictoc
 
 class Pipeline(object):
-    def __init__(self, index, doctype='text', textCols=None, tagCols=None, numCols=None, geoPointCols = None, idCol=None, dateCol=None, suggests=None, es=None, lang='english'):
+    def __init__(self, index, doctype='_doc', textCols=None, tagCols=None, numCols=None, geoPointCols = None, idCol=None, dateCol=None, suggests=None, es=None, lang='english'):
         self._pipeline = []
         self._index = index
         self._doctype=doctype
@@ -29,6 +29,9 @@ class Pipeline(object):
     def add(self, x):
         self._pipeline.append(x)
         x.addingToPipeline(self)
+    def __iadd__(self, other):
+        self.add(other)
+        return self
     def suggests(self, suggestCols):
         self._suggests = suggestCols
     
