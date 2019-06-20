@@ -68,9 +68,23 @@ class Kibana(object):
                 self.deleteKibanaSavedObject(t, i['id'])
         print('finished deleting')
     
+    def getKibanaConfig(self, name=None, onlyLastSetValue=True, defaultValue=None):
+        assert onlyLastSetValue
+        config = self.getKibanaSavedObjects('config')
+        # TODO need to implement for onlyLastSetValue=False as well or warn if multiple values?
+        result = dict()
+        for i in config:
+            c = i['attributes']
+            result.update(c)
+        if name is not None:
+            if name in result:
+                return result[name]
+            else:
+                return defaultValue
+        return result
+    
     def addKibanaConfig(self, name, value, addToList=False, id=None):
-        if addToList:
-            pass
+        assert not addToList
         attributes = { name: value }
         res = self.postKibanaSavedObject('config', attributes, id=id)
         return res
@@ -184,6 +198,10 @@ class Kibana(object):
     def setup_kibana(self, index, timeField=None, searchCols=[], visCols=None, dashboard=True, timeFrom=None, timeTo=None, sets=True):
         print(f'{index}: adding index-pattern')
         ipUID, _ipRes = self.addKibanaIndexPattern(index, timeField, overwrite=True)
+        if self.getKibanaConfig('defaultIndex') is None:
+            # BUG the following is not really setting the defaultIndex as the Kibana UI see it...
+            print(f'{index}: setting default index-pattern')
+            self.addKibanaConfig('defaultIndex', ipUID)
         print(f'{index}: adding search')
         seUID, _seRes = self.addKibanaSearch(index+"-search", searchCols)
         visUIDs = []

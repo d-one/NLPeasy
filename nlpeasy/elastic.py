@@ -152,7 +152,7 @@ class ElasticStack(object):
             for ii, doc in enumerate(docs):
                 i = ic * chunksize + ii
                 doc = rmNanFromDict(doc)
-                if suggestCol in doc:
+                if suggestCol and suggestCol in doc:
                     doc['suggest'] = doc[suggestCol]
                 try:
                     self.es.index(index=index, doc_type=doctype, id=idCol[i], body=doc)
