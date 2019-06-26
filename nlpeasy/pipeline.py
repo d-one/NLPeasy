@@ -11,7 +11,8 @@ from . import kibana
 from .util import chunker, Tictoc
 
 class Pipeline(object):
-    def __init__(self, index, doctype='_doc', textCols=None, tagCols=None, numCols=None, geoPointCols = None, idCol=None, dateCol=None, suggests=None, es=None, lang='english'):
+    def __init__(self, index, textCols=None, tagCols=None, numCols=None, geoPointCols = None,
+            idCol=None, dateCol=None, suggests=None, elk=None, lang='english', doctype='_doc'):
         self._pipeline = []
         self._index = index
         self._doctype=doctype
@@ -24,8 +25,9 @@ class Pipeline(object):
         self._idCol = idCol
         self._suggests = suggests or []
         self._lang = lang
-        self._es = es if es else elastic.defaultStack()
+        self.elk = elk
         self._tictoc = Tictoc(output='', additive=True)
+        self._min_max = {}
     def add(self, x):
         self._pipeline.append(x)
         x.addingToPipeline(self)
@@ -36,10 +38,10 @@ class Pipeline(object):
         self._suggests = suggestCols
     
     def setup_elastic(self, **kwargs):
-        self._es.createIndex(self._index, self._doctype,
+        self.elk.createIndex(self._index, self._doctype,
             textCols=self._textCols, tagCols=self._tagCols,
             dateCol=self._dateCol, geoPointCols=self._geoPointCols, lang=self._lang, **kwargs)
-    def setup_kibana(self, texts=None, **kwargs):
+    def setup_kibana(self, **kwargs):
         visCols = []
         if self._dateCol:
             visCols.append(kibana.DateHistogram(self._dateCol))
@@ -49,19 +51,26 @@ class Pipeline(object):
             visCols.append(kibana.TagCloud(i))
         for i in self._numCols:
             interval = 0.1
-            if texts is not None and i in texts:
-                interval = (texts.loc[:,i].max() - texts.loc[:,i].min()) / 100
+            if i in self._min_max:
+                min, max = self._min_max[i]
+                interval = (max - min) / 100
             visCols.append(kibana.Histogram(i, interval))
         timeFrom, timeTo = None, None
-        if texts is not None and self._dateCol:
-            timeFrom = texts.loc[:,self._dateCol].min()
-            timeTo = texts.loc[:,self._dateCol].max()
-        self._es._kibana.setup_kibana(self._index, self._dateCol,
+        if self._dateCol in self._min_max:
+            timeFrom, timeTo = self._min_max[self._dateCol]
+        self.elk.kibana.setup_kibana(self._index, self._dateCol,
             searchCols=self._textCols, visCols=visCols, dashboard=True,
             timeFrom=timeFrom, timeTo=timeTo, **kwargs)
+    def create_kibana_dashboard(self, **kwargs):
+        self.setup_kibana(**kwargs)
 
-    def process(self, texts, writeElastic=True, batchSize=1000, returnProcessed=True, progbar=True):
+    def process(self, texts, writeElastic=None, batchSize=1000, returnProcessed=True, progbar=True):
+        if writeElastic is None:
+            writeElastic = self.elk is not None
+        if writeElastic:
+            self.setup_elastic()
         results = []
+
         self.tic('global', 'process')
         for chunk in chunker(texts, batchSize, progbar=progbar):
             x = chunk
@@ -80,15 +89,22 @@ class Pipeline(object):
         self.tic('global', 'concat results')
         results =  pd.concat(results, sort=False)
         self.toc()
+
+        self.tic('global','min_max_calc')
+        # Need to keep track of ranges for kibana to have something ot work on
+        for i in self._numCols + [self._dateCol]:
+            self._min_max[i] = (results.loc[:,i].min(),results.loc[:,i].max())
+        self.toc()
+
         return results
         
     def write_elastic(self, texts, setKibanaTimeDefault=True, chunksize=1000, showProgbar=True):
         self.tic('elastic', 'upload')
-        self._es.loadDocs(index=self._index, doctype=self._doctype, dateCol=self._dateCol, idCol=self._idCol,
+        self.elk.loadDocs(index=self._index, doctype=self._doctype, dateCol=self._dateCol, idCol=self._idCol,
                             suggestCol=self._suggests, texts=texts.drop(columns=self._ignoreUploadCols, errors='ignore'), chunksize=chunksize, showProgbar=showProgbar)
         self.toc()
         if setKibanaTimeDefault and self._dateCol is not None:
-            self._es._kibana.set_kibana_timeDefaults(timeFrom=str(texts[self._dateCol].min()), timeTo=str(texts[self._dateCol].max()))
+            self.elk._kibana.set_kibana_timeDefaults(timeFrom=str(texts[self._dateCol].min()), timeTo=str(texts[self._dateCol].max()))
     def tic(self, part, name):
         self._tictoc.tic(f"{part} / {name}")
     def toc(self):

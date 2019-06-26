@@ -81,32 +81,28 @@ Usage
 import pandas as pd
 import nlpeasy as ne
 
-# start elastic Open Source stack on your docker
+# connect to running elastic or else start an Open Source stack on your docker
+elk = ne.connect_elastic(dockerPrefix='nlp', dockerELKVersion='6.3.2', dockerMountVolumePrefix=None)
+# If it is started on docker it will on the first time pull the images (1.3GB)!
+# BTW, this function is not blocking, i.e. the servers might only be active couple of seconds later.
+# Setting dockerMountVolumePrefix="./elastic-data/" keeps the data of elastic in your
+# filesystems and then the data survives container restarts
 
-ne.start_elastic_on_docker('nlp', version='6.3.2', mountVolumePrefix=None)
-
-# first time this pulls the images (1.3GB)
-# and after returning from this function, the elastic will keep spinning up in the background
-# mountVolumePrefix="./elastic-data/" would let the data survive container restarts
-
-setup stages in the NLP pipeline and set textfields
-pipeline = ne.Pipeline(index='nips', textCols=['message','title'], suggests='message_subj', dateCol='year')
+# setup stages in the NLP pipeline and set textfields
+pipeline = ne.Pipeline(index='nips', textCols=['message','title'], dateCol='year', elk=elk)
 
 pipeline += ne.RegexTag(r'\$([^$]+)\$', ['message'], 'math')
 pipeline += ne.VaderSentiment('message', 'sentiment')
 pipeline += ne.SpacyEnrichment(cols=['message','title'])
 
-# start and setup elastic and kibana
-pipeline.setup_elastic()
-
 # do the pipeline
 nips_enriched = pipeline.process(nips, writeElastic=True)
 
 # Create Kibana Dashboard of all the columns
-pipeline.setup_kibana(texts=nips)
+pipeline.create_kibana_dashboard()
 
 # open Kibana in webbrowser
-ne.showKibana('jupyter')
+elk.show_kibana()
 ```
 
 Features

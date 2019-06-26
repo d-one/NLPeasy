@@ -6,26 +6,96 @@
 import pandas as pd
 import elasticsearch
 from . import kibana
+from . import docker
 
-from .util import Progbar, chunker
+from .util import Progbar, chunker, print_or_display
+
+def connect_elastic(dockerPrefix='nlp', startOnDocker=True,
+            host='localhost', elasticPort=None, kibanaPort=None, kibanaHost=None,
+            dockerElkVersion='7.1.1', dockerMountPoint=None,
+            verbose=True, failOnNotAvailable=False, **kwargs):
+    kibanaHost = kibanaHost or host
+    elasticPort = elasticPort or 9200
+    kibanaPort = kibanaPort or 5601
+    log = print_or_display if verbose else lambda x: None
+    elk = ElasticStack(host=host, elasticPort=elasticPort, kibanaPort=kibanaPort, kibanaHost=kibanaHost)
+    if elk.alive():
+        log(f"Elasticsearch already running")
+        log(elk)
+        return elk
+    if dockerPrefix is None:
+        if failOnNotAvailable:
+            raise RuntimeError(f"No running elasticsearch found on {host}:{elasticPort}.")
+        else:
+            log(f"No running elasticsearch found on {host}:{elasticPort}.")
+            return None
+    
+    # Let's pass it on to docker:
+    log(f"No elasticsearch on {host}:{elasticPort} found, trying connect to docker container with prefix {dockerPrefix}")
+    elk = docker.elasticStackFromDocker(containerPrefix=dockerPrefix, setAsDefaultStack=False)
+    if elk is None or not elk.alive():
+        if startOnDocker:
+            log(f"No docker container with prefix {dockerPrefix}; starting one")
+            assert all(i not in kwargs for i in ['mountVolumePrefix','version','prefix'])
+            elk = docker.start_elastic_on_docker(prefix=dockerPrefix, elkVersion=dockerElkVersion, mountVolumePrefix=dockerMountPoint, **kwargs)
+        else:
+            msg = f"No running elasticsearch found on docker with prefix {dockerPrefix}."
+            if failOnNotAvailable:
+                raise RuntimeError(msg)
+            else:
+                log(msg)
+                return None
+    log(elk)
+    return elk
 
 class ElasticStack(object):
     def __init__(self, host='localhost', elasticPort=9200, kibanaPort=5601, protocol='http',
-                kibanaHost=None, kibanaProtocol=None, verify_certs=True, **kwargs):
+                kibanaHost=None, kibanaProtocol=None, verify_certs=True, setAsDefaultStack=True, **kwargs):
         self._host = host
         self._elasticPort = elasticPort
         self._protocol = protocol
         self._verify_certs = verify_certs
 
-        self._kibana = kibana.Kibana(
+        self._es = None
+        self._kibana = None
+        self._elasticKwargs = kwargs
+
+        self.kibana = kibana.Kibana(
             host=self._host if kibanaHost is None else kibanaHost,
             port=kibanaPort,
             protocol=self._protocol if kibanaProtocol is None else kibanaProtocol,
             verify_certs=self._verify_certs
         )
 
-        self._es = None
-        self._elasticKwargs = kwargs
+        if setAsDefaultStack:
+            setDefaultStack(self)
+    
+    def alive(self, verbose=True):
+        import logging
+        urllib_logger = logging.getLogger("request")
+        orig_max_retries = 3
+        orig_level = urllib_logger.level
+        result = False
+        try:
+            # BUG Disabling logging does not work:
+            urllib_logger.setLevel(logging.FATAL)
+            orig_max_retries = self.es.transport.max_retries
+            self.es.transport.max_retries = 0
+            result = self.es.ping()
+        except Exception as e:
+            if verbose:
+                print(e)
+        self.es.transport.max_retries = orig_max_retries
+        urllib_logger.setLevel(orig_level)
+        return result
+    
+    def url(self):
+        return f"{self._protocol}://{self._host}:{self._elasticPort}"
+    def __repr__(self):
+        return f"ElasticSearch on {self.url()}\n" + self.kibana.__repr__()
+    def _repr_html_(self):
+        return f"ElasticSearch on <a href='{self.url()}'>{self.url()}</a> <br> " + self.kibana._repr_html_()
+
     
     @property
     def es(self):
@@ -167,6 +237,9 @@ class ElasticStack(object):
                 "match_all" : {}
             }
         })
+    
+    def show_kibana(self, how=None, *args, **kwargs):
+        self.kibana.show_kibana(how=how, *args, **kwargs)
 
 def rmNanFromDict(x):
     if isinstance(x, dict):
@@ -187,8 +260,10 @@ def rmNanFromDict(x):
         return y
     raise Exception("x has to be a list or a dict")
 
-__DEFAULT_STACK = ElasticStack()
+__DEFAULT_STACK = None
 def defaultStack():
+    if __DEFAULT_STACK is None:
+        __DEFAULT_STACK = ElasticStack()
     return __DEFAULT_STACK
 def setDefaultStack(es):
     global __DEFAULT_STACK

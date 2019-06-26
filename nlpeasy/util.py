@@ -256,3 +256,11 @@ class Tictoc(object):
             print(f"Warning: stack is not empty but has {len(self.stack)} items")
         for k,v in self._summarizer.items():
             print(f"{k}: {formatTime_ns(v)}")
+
+try:
+    from IPython.display import display
+    print_or_display = display
+    __IS_JUPYTER = get_ipython().has_trait('kernel')
+except ImportError:
+    print_or_display = print
+    __IS_JUPYTER = False

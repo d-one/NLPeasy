@@ -6,6 +6,7 @@
 import pandas
 import requests
 import json
+from . import util
 
 class Kibana(object):
     def __init__(self, host='localhost', port=5601, protocol='http',
@@ -22,8 +23,14 @@ class Kibana(object):
             # TODO Warn about missing initial '/'?
             path = '/'+path
         return f"{self._protocol}://{self._host}:{self._port}{path}"
+    def alive(self, verbose=True):
+        resp = requests.head(self.kibanaUrl())
+        return resp.status_code == 200
 
-    def showKibana(self, how='print', *args, **kwargs):
+    def show_kibana(self, how=None, *args, **kwargs):
+        if how is None:
+            how = 'jupyter' if util.__IS_JUPYTER else 'webbrowser'
+            # TODO can we figure out "non-interactive" to put how='print' then?
         how = how if isinstance(how, list) else [how]
         url = self.kibanaUrl(*args, **kwargs)
         if 'print' in how:
@@ -33,7 +40,13 @@ class Kibana(object):
             webbrowser.open(url)
         if 'jupyter' in how or 'ipython' in how:
             from IPython.core.display import HTML
-            return HTML(f'Open: <a href="{url}">{url}</a>')
+            return HTML(self._repr_html_())
+    
+    def __repr__(self):
+        return f"Kibana on {self.kibanaUrl()}"
+
+    def _repr_html_(self):
+        return f"Kibana on <a href='{self.kibanaUrl()}'>{self.kibanaUrl()}</a>"
 
     def getKibanaSavedObjects(self, type='index-pattern', search=None, fields=None):
         type = '&type=' + type if type else ''
