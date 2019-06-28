@@ -259,6 +259,12 @@ class Kibana(object):
         value = [{"from": str(timeFrom), "to": str(timeTo), "display": display, "section": section}]
         uid, res = self.addKibanaConfig("timepicker:quickRanges", json.dumps(value), id=id)
         return uid, res
+    def show_kibana_jupyter(self, height=500):
+        # see e.g. https://github.com/tensorflow/tensorboard/blob/d9092143511cb04e4bfc904820305f1be45c67b3/tensorboard/notebook.py
+        from IPython.display import IFrame
+        url = self.kibanaUrl()
+        iframe = IFrame(src=url, height=500, width="100%")
+        return iframe
 
 class Visualization(object):
     def __init__(self, field, agg='count'):

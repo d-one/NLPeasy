@@ -257,10 +257,32 @@ class Tictoc(object):
         for k,v in self._summarizer.items():
             print(f"{k}: {formatTime_ns(v)}")
 
-try:
-    from IPython.display import display
-    print_or_display = display
-    __IS_JUPYTER = get_ipython().has_trait('kernel')
-except ImportError:
-    print_or_display = print
-    __IS_JUPYTER = False
+def rmNanFromDict(x):
+    import pandas as pd
+    if isinstance(x, dict):
+        y = {}
+        for k,v in x.items():
+            if isinstance(v, list) or isinstance(v, dict):
+                y[k] = rmNanFromDict(v)
+            elif not pd.isna(v):
+                y[k] = v
+        return y
+    if isinstance(x, list):
+        y = []
+        for v in x:
+            if isinstance(v, list) or isinstance(v, dict):
+                y.append(rmNanFromDict(v))
+            elif not pd.isna(v):
+                y.append(v)
+        return y
+    raise Exception("x has to be a list or a dict")
+
+def _display_and_is_jupyter():
+    try:
+        from IPython import display, get_ipython
+        if not get_ipython():
+            raise ImportError()
+        return (display.display, get_ipython().has_trait('kernel'))
+    except ImportError:
+        return (print, False)
+print_or_display, __IS_JUPYTER = _display_and_is_jupyter()

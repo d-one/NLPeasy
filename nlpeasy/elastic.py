@@ -8,7 +8,7 @@ import elasticsearch
 from . import kibana
 from . import docker
 
-from .util import Progbar, chunker, print_or_display
+from .util import Progbar, chunker, print_or_display, rmNanFromDict
 
 def connect_elastic(dockerPrefix='nlp', startOnDocker=True,
             host='localhost', elasticPort=None, kibanaPort=None, kibanaHost=None,
@@ -240,25 +240,6 @@ class ElasticStack(object):
     
     def show_kibana(self, how=None, *args, **kwargs):
         self.kibana.show_kibana(how=how, *args, **kwargs)
-
-def rmNanFromDict(x):
-    if isinstance(x, dict):
-        y = {}
-        for k,v in x.items():
-            if isinstance(v, list) or isinstance(v, dict):
-                y[k] = rmNanFromDict(v)
-            elif not pd.isna(v):
-                y[k] = v
-        return y
-    if isinstance(x, list):
-        y = []
-        for v in x:
-            if isinstance(v, list) or isinstance(v, dict):
-                y.append(rmNanFromDict(v))
-            elif not pd.isna(v):
-                y.append(v)
-        return y
-    raise Exception("x has to be a list or a dict")
 
 __DEFAULT_STACK = None
 def defaultStack():
