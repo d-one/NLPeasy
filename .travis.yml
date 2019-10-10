@@ -5,14 +5,27 @@ python:
   - 3.7
   - 3.6
   - 3.5
-  - 3.4
-  - 2.7
+
+env:
+  - ELASTIC_VERSION=7.4.0 ELASTIC_PASSWORD=my_elastic_password12390
 
 # Command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
 install: pip install -U tox-travis
 
 # Command to run tests, e.g. python setup.py test
 script: tox
+
+services:
+  - docker
+
+before_install:
+  - docker network create nlp_network
+  - docker run --rm -itd --net=nlp_network -e ELASTIC_PASSWORD=$ELASTIC_PASSWORD -e discovery.type=single-node -e cluster.name=docker-cluster -e bootstrap.memory_lock=true -e "ES_JAVA_OPTS=-Xms512m -Xmx512m" -p 9200:9200 --name nlp_elastic docker.elastic.co/elasticsearch/elasticsearch-oss:$ELASTIC_VERSION
+  - docker run --rm -itd --net=nlp_network -e SERVER_NAME=kibana -e ELASTICSEARCH_URL=http://nlp_elastic:9200 -e ELASTICSEARCH_HOSTS=http://nlp_elastic:9200 -p 5601:5601 --name nlp_kibana docker.elastic.co/kibana/kibana-oss:$ELASTIC_VERSION
+
+# elasticsearch needs some time to be available
+before_script:
+  - sleep 5
 
 # Assuming you have installed the travis-ci CLI tool, after you
 # create the Github repo and add it to Travis, run the
@@ -26,5 +39,5 @@ deploy:
     secure: PLEASE_REPLACE_ME
   on:
     tags: true
-    repo: nlpeasy/nlpeasy
+    repo: d-one/nlpeasy
     python: 3.6

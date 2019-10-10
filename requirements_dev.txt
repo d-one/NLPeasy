@@ -11,3 +11,4 @@ readme_renderer[md]
 
 pytest==3.8.2
 pytest-runner==4.2
+scikit-learn

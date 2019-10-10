@@ -34,8 +34,8 @@ def start_elastic_on_docker(prefix, errorIfExists=False,
     network = f'{prefix}_network'
     if not len(client.networks.list(names=[network])):
         client.networks.create(network)
-    
-    
+
+
     el_name = prefix+"_elastic"
     el_ulimits = [dockerpy.types.Ulimit(name='memlock', soft=-1, hard=-1), dockerpy.types.Ulimit(name='nofile', soft=65536, hard=65536)]
     el_env = [f'ELASTIC_PASSWORD={elasticPassword}','discovery.type=single-node',
@@ -63,12 +63,12 @@ def start_elastic_on_docker(prefix, errorIfExists=False,
 
     ki_name = prefix+"_kibana"
     ki_env = [f'ELASTIC_PASSWORD={elasticPassword}',
-             'SERVER_NAME: kibana', f'ELASTICSEARCH_URL=http://{el_name}:9200', f'ELASTICSEARCH_HOSTS=http://{el_name}:9200']
+             'SERVER_NAME=kibana', f'ELASTICSEARCH_URL=http://{el_name}:9200', f'ELASTICSEARCH_HOSTS=http://{el_name}:9200']
     if errorIfExists or not len(client.containers.list(filters={'name': ki_name})):
         client.containers.run(ki_im, name=ki_name, detach=True, remove=rm, network=network, ports={'5601': kibanaPort},
                 environment=ki_env, mounts=ki_mnts)
     kibanaPort = client.api.inspect_container(ki_name)['NetworkSettings']['Ports']['5601/tcp'][0]['HostPort']
-    
+
     elk = None
     # TODO find docker containers IP
     elk = elastic.ElasticStack(elasticPort=elasticPort, kibanaPort=kibanaPort)
