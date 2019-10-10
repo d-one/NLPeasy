@@ -36,11 +36,12 @@ class Pipeline(object):
         return self
     def suggests(self, suggestCols):
         self._suggests = suggestCols
-    
+
     def setup_elastic(self, **kwargs):
-        self.elk.createIndex(self._index, self._doctype,
-            textCols=self._textCols, tagCols=self._tagCols,
-            dateCol=self._dateCol, geoPointCols=self._geoPointCols, lang=self._lang, **kwargs)
+        if self.elk is not None:
+            self.elk.createIndex(self._index, self._doctype,
+                textCols=self._textCols, tagCols=self._tagCols,
+                dateCol=self._dateCol, geoPointCols=self._geoPointCols, lang=self._lang, **kwargs)
     def setup_kibana(self, **kwargs):
         visCols = []
         if self._dateCol:
@@ -92,12 +93,15 @@ class Pipeline(object):
 
         self.tic('global','min_max_calc')
         # Need to keep track of ranges for kibana to have something ot work on
-        for i in self._numCols + [self._dateCol]:
+        cols = self._numCols
+        if self._dateCol is not None:
+            cols.append(self._dateCol)
+        for i in cols:
             self._min_max[i] = (results.loc[:,i].min(),results.loc[:,i].max())
         self.toc()
 
         return results
-        
+
     def write_elastic(self, texts, setKibanaTimeDefault=True, chunksize=1000, showProgbar=True):
         self.tic('elastic', 'upload')
         self.elk.loadDocs(index=self._index, doctype=self._doctype, dateCol=self._dateCol, idCol=self._idCol,
@@ -123,7 +127,7 @@ class PipelineStage(object):
         return self._pipeline._tictoc.wrap(iter, f"{self.name} / {name}")
     def toc(self):
         self._pipeline.toc()
-    
+
 
 class MapToSingle(PipelineStage):
     def __init__(self, col, outCol):
@@ -257,7 +261,7 @@ class SpacyEnrichment(MapToNamedTags):
                 ret['subj'] = list(tok.lemma.loc[tok.dep.isin(['nsubj','sb'])])
             if 'verb' in self._tags:
                 ret['verb'] = list(tok.lemma.loc[tok.pos=='VERB'])
-            
+
             posNum = tok.pos.value_counts()
             posSel = tok.pos.unique() if self._posNum==True else self._posNum
             for pos in posSel:

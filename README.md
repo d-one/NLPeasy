@@ -20,7 +20,7 @@ Prerequisites:
     - Have Docker installed - needs to have the docker package installed (see below).
     - Install and start Elasticsearch and Kibana:
     <https://www.elastic.co/downloads/> or
-    <https://www.elastic.co/downloads/elasticsearch-oss> (pure Apache Licensed Version)
+    <https://www.elastic.co/downloads/elasticsearch-oss> (pure Apache licensed version)
     - Use any running Elasticsearch and Kibana (on premise or cloud)...
 - Pretrained Models: See below for Spacy Language Models and WordVectors
 
@@ -47,8 +47,6 @@ If you want to use pretrained [FastText-Wordvectors](https://fasttext.cc/docs/en
 ```bash
 curl -O https://dl.fbaipublicfiles.com/fasttext/vectors-wiki/wiki.en.zip
 curl -O https://dl.fbaipublicfiles.com/fasttext/vectors-wiki/wiki.de.zip
-# and/or
-python -m spacy download de_core_news_md
 ```
 
 If you want to use Jupyter, install it to the virtual environment:

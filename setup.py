@@ -8,12 +8,12 @@ from setuptools import setup, find_packages
 with open('README.md') as readme_file:
     readme = readme_file.read()
 
-with open('HISTORY.md') as history_file:
-    history = history_file.read()
+# with open('HISTORY.md') as history_file:
+#     history = history_file.read()
 
 requirements = [ 'pandas', 'spacy', 'elasticsearch', 'beautifulsoup4', 'vaderSentiment', 'docker', ]
 
-setup_requirements = ['pytest-runner', ]
+setup_requirements = ['pytest-runner', 'twine', ]
 
 test_requirements = ['pytest', ]
 
@@ -38,11 +38,11 @@ setup(
     description="Easy Peasy Language Squeezy",
     install_requires=requirements,
     license="Apache Software License 2.0",
-    long_description=readme + '\n\n' + history,
+    long_description=readme + '\n\n', # + history,
     long_description_content_type='text/markdown',
     include_package_data=True,
     keywords='nlpeasy',
-    name='NLPeasy',
+    name='nlpeasy',
     packages=find_packages(include=['nlpeasy']),
     setup_requires=setup_requirements,
     test_suite='tests',
