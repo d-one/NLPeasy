@@ -4,7 +4,7 @@ language: python
 python:
   - 3.7
   - 3.6
-  - 3.5
+#  - 3.5
 
 env:
   - ELASTIC_VERSION=7.4.0 ELASTIC_PASSWORD=my_elastic_password12390
@@ -24,8 +24,8 @@ before_install:
   - docker run --rm -itd --net=nlp_network -e SERVER_NAME=kibana -e ELASTICSEARCH_URL=http://nlp_elastic:9200 -e ELASTICSEARCH_HOSTS=http://nlp_elastic:9200 -p 5601:5601 --name nlp_kibana docker.elastic.co/kibana/kibana-oss:$ELASTIC_VERSION
 
 # elasticsearch needs some time to be available
-before_script:
-  - sleep 5
+#before_script:
+#  - sleep 5
 
 # Assuming you have installed the travis-ci CLI tool, after you
 # create the Github repo and add it to Travis, run the
@@ -40,4 +40,4 @@ deploy:
   on:
     tags: true
     repo: d-one/nlpeasy
-    python: 3.6
+    python: 3.7
