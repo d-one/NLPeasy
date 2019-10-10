@@ -11,7 +11,7 @@ with open('README.md') as readme_file:
 with open('HISTORY.md') as history_file:
     history = history_file.read()
 
-requirements = [ 'pandas', 'spacy', 'elasticsearch', 'beautifulsoup4', 'vaderSentiment', ]
+requirements = [ 'pandas', 'spacy', 'elasticsearch', 'beautifulsoup4', 'vaderSentiment', 'docker', ]
 
 setup_requirements = ['pytest-runner', ]
 
@@ -21,7 +21,7 @@ setup(
     author="Philipp Thomann",
     author_email='philipp.thomann@d-one.ai',
     classifiers=[
-        'Development Status :: 2 - Pre-Alpha',
+        'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: Apache Software License',
         'Natural Language :: English',
@@ -32,6 +32,8 @@ setup(
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
+        'Topic :: Scientific/Engineering :: Artificial Intelligence',
+        'Topic :: Text Processing :: Markup :: HTML',
     ],
     description="Easy Peasy Language Squeezy",
     install_requires=requirements,
@@ -45,7 +47,7 @@ setup(
     setup_requires=setup_requirements,
     test_suite='tests',
     tests_require=test_requirements,
-    url='https://github.com/nlpeasy/nlpeasy',
-    version='0.5.0',
+    url='https://github.com/d-one/nlpeasy',
+    version='0.6.0',
     zip_safe=False,
 )

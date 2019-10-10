@@ -189,7 +189,7 @@ class Progbar(object):
 
     def add(self, n, values=None):
         self.update(self._seen_so_far + n, values)
-        
+
 def formatTime(eta):
     if eta > 3600:
         eta_format = ('%d:%02d:%02d' %
@@ -285,4 +285,4 @@ def _display_and_is_jupyter():
         return (display.display, get_ipython().has_trait('kernel'))
     except ImportError:
         return (print, False)
-print_or_display, __IS_JUPYTER = _display_and_is_jupyter()
+print_or_display, IS_JUPYTER = _display_and_is_jupyter()

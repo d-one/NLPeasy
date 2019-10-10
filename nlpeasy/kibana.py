@@ -29,7 +29,7 @@ class Kibana(object):
 
     def show_kibana(self, how=None, *args, **kwargs):
         if how is None:
-            how = 'jupyter' if util.__IS_JUPYTER else 'webbrowser'
+            how = 'jupyter' if util.IS_JUPYTER else 'webbrowser'
             # TODO can we figure out "non-interactive" to put how='print' then?
         how = how if isinstance(how, list) else [how]
         url = self.kibanaUrl(*args, **kwargs)
@@ -41,7 +41,7 @@ class Kibana(object):
         if 'jupyter' in how or 'ipython' in how:
             from IPython.core.display import HTML
             return HTML(self._repr_html_())
-    
+
     def __repr__(self):
         return f"Kibana on {self.kibanaUrl()}"
 
@@ -80,7 +80,7 @@ class Kibana(object):
                 # print(i['id'])
                 self.deleteKibanaSavedObject(t, i['id'])
         print('finished deleting')
-    
+
     def getKibanaConfig(self, name=None, onlyLastSetValue=True, defaultValue=None):
         assert onlyLastSetValue
         config = self.getKibanaSavedObjects('config')
@@ -95,7 +95,7 @@ class Kibana(object):
             else:
                 return defaultValue
         return result
-    
+
     def addKibanaConfig(self, name, value, addToList=False, id=None):
         assert not addToList
         attributes = { name: value }
@@ -116,7 +116,7 @@ class Kibana(object):
         uid, result = self.postKibanaSavedObject('index-pattern', attributes)
         if setDefaultIndexPattern:
             self._defaultIndexPatternUID = uid
-        
+
         return uid, result
     def addKibanaSearch(self, title, columns, description=None, sort=None, setDefaultSearch=True, indexPatternUID=None):
         if indexPatternUID is None:

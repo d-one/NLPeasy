@@ -12,7 +12,7 @@ from .util import Progbar, chunker, print_or_display, rmNanFromDict
 
 def connect_elastic(dockerPrefix='nlp', startOnDocker=True,
             host='localhost', elasticPort=None, kibanaPort=None, kibanaHost=None,
-            dockerElkVersion='7.1.1', dockerMountPoint=None,
+            elkVersion='7.1.1', mountVolumePrefix=None,
             verbose=True, failOnNotAvailable=False, **kwargs):
     kibanaHost = kibanaHost or host
     elasticPort = elasticPort or 9200
@@ -21,6 +21,7 @@ def connect_elastic(dockerPrefix='nlp', startOnDocker=True,
     elk = ElasticStack(host=host, elasticPort=elasticPort, kibanaPort=kibanaPort, kibanaHost=kibanaHost)
     if elk.alive():
         log(f"Elasticsearch already running")
+        # TODO warn if version mismatches elkVersion param
         log(elk)
         return elk
     if dockerPrefix is None:
@@ -29,7 +30,7 @@ def connect_elastic(dockerPrefix='nlp', startOnDocker=True,
         else:
             log(f"No running elasticsearch found on {host}:{elasticPort}.")
             return None
-    
+
     # Let's pass it on to docker:
     log(f"No elasticsearch on {host}:{elasticPort} found, trying connect to docker container with prefix {dockerPrefix}")
     elk = docker.elasticStackFromDocker(containerPrefix=dockerPrefix, setAsDefaultStack=False)
@@ -37,7 +38,7 @@ def connect_elastic(dockerPrefix='nlp', startOnDocker=True,
         if startOnDocker:
             log(f"No docker container with prefix {dockerPrefix}; starting one")
             assert all(i not in kwargs for i in ['mountVolumePrefix','version','prefix'])
-            elk = docker.start_elastic_on_docker(prefix=dockerPrefix, elkVersion=dockerElkVersion, mountVolumePrefix=dockerMountPoint, **kwargs)
+            elk = docker.start_elastic_on_docker(prefix=dockerPrefix, elkVersion=elkVersion, mountVolumePrefix=mountVolumePrefix, **kwargs)
         else:
             msg = f"No running elasticsearch found on docker with prefix {dockerPrefix}."
             if failOnNotAvailable:
@@ -69,7 +70,7 @@ class ElasticStack(object):
 
         if setAsDefaultStack:
             setDefaultStack(self)
-    
+
     def alive(self, verbose=True):
         import logging
         urllib_logger = logging.getLogger("request")
@@ -88,7 +89,7 @@ class ElasticStack(object):
         self.es.transport.max_retries = orig_max_retries
         urllib_logger.setLevel(orig_level)
         return result
-    
+
     def url(self):
         return f"{self._protocol}://{self._host}:{self._elasticPort}"
     def __repr__(self):
@@ -96,14 +97,14 @@ class ElasticStack(object):
     def _repr_html_(self):
         return f"ElasticSearch on <a href='{self.url()}'>{self.url()}</a> <br> " + self.kibana._repr_html_()
 
-    
+
     @property
     def es(self):
         if self._es is None:
             host = { 'host': self._host, 'port': self._elasticPort, 'use_ssl': self._protocol == 'https',  }
             self._es = elasticsearch.Elasticsearch([host], verify_certs=self._verify_certs, **self._elasticKwargs)
         return self._es
-    
+
     def getAnalysis(self, lang='english', synonyms=None):
         filter_names = []
         if lang == 'english':
@@ -143,7 +144,7 @@ class ElasticStack(object):
         return filters, analyzer
 
 
-    # TODO languages, synonyms, 
+    # TODO languages, synonyms,
     def createIndex(self, index='texts',doctype='_doc',create=True,
             textCols=[], tagCols=[], geoPointCols = [], synonyms=[], dateCol=None, lang='english',
             deleteOld=True, verbose=False):
@@ -205,7 +206,7 @@ class ElasticStack(object):
             return(body)
         else:
             self.es.indices.put_mapping(index=index, doc_type=doctype, body=mapping)
-    
+
     def loadDocs(self, index, texts, doctype='_doc', dateCol=None, deleteOld=False, chunksize=1000, idCol=None,
                 suggestCol=None, showProgbar=True):
         if idCol is None:
@@ -230,14 +231,14 @@ class ElasticStack(object):
                     print(ex)
                     print(doc)
                     print('=' * 80)
-    
+
     def truncate(self, index, doctype='text'):
         self._es.delete_by_query(index, {
-            "query" : { 
+            "query" : {
                 "match_all" : {}
             }
         })
-    
+
     def show_kibana(self, how=None, *args, **kwargs):
         self.kibana.show_kibana(how=how, *args, **kwargs)
 
