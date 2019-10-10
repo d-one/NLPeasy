@@ -43,7 +43,7 @@ def test_end_to_end(elk):
     assert news_enriched.shape[0] == N
 
     # Create Kibana Dashboard of all the columns
-    #pipeline.create_kibana_dashboard()
+    pipeline.create_kibana_dashboard()
 
     # open Kibana in webbrowser
     #elk.show_kibana()
