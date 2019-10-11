@@ -4,7 +4,7 @@
 
 __author__ = """Philipp Thomann"""
 __email__ = 'philipp.thomann@d-one.ai'
-__version__ = '0.6.0'
+__version__ = '0.6.1'
 
 from .pipeline import *
 from .docker import *

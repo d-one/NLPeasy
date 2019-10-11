@@ -1,3 +1,6 @@
+[![Travis Build Status](<https://img.shields.io/travis/d-one/nlpeasy/master.svg?style=flat-square&logo=travis-ci&logoColor=white&label=build>)](https://travis-ci.org/d-one/nlpeasy)
+[![pypi Version](https://img.shields.io/pypi/v/nlpeasy.svg?style=flat-square&logo=pypi&logoColor=white)](https://pypi.org/project/nlpeasy/)
+
 NLPeasy
 =======
 
@@ -32,9 +35,13 @@ source venv/bin/activate
 ```
 The source statement has to be repeated whenever you open a new terminal.
 
-Then install this version
+Then install
 ```bash
-pip install --upgrade git+https://github.com/nlpeasy/nlpeasy
+pip install nlpeasy
+```
+Or the development version from GitHub:
+```bash
+pip install --upgrade git+https://github.com/d-one/nlpeasy
 ```
 
 If you want to use spaCy language models download them (90-200 MB), e.g.
@@ -57,7 +64,7 @@ pip install jupyterlab
 ### Development
 To install this module in Dev-mode, i.e. change files and reload module:
 ```bash
-git clone https://github.com/nlpeasy/nlpeasy
+git clone https://github.com/d-one/nlpeasy
 cd nlpeasy
 ```
 

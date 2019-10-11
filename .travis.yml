@@ -23,21 +23,13 @@ before_install:
   - docker run --rm -itd --net=nlp_network -e ELASTIC_PASSWORD=$ELASTIC_PASSWORD -e discovery.type=single-node -e cluster.name=docker-cluster -e bootstrap.memory_lock=true -e "ES_JAVA_OPTS=-Xms512m -Xmx512m" -p 9200:9200 --name nlp_elastic docker.elastic.co/elasticsearch/elasticsearch-oss:$ELASTIC_VERSION
   - docker run --rm -itd --net=nlp_network -e SERVER_NAME=kibana -e ELASTICSEARCH_URL=http://nlp_elastic:9200 -e ELASTICSEARCH_HOSTS=http://nlp_elastic:9200 -p 5601:5601 --name nlp_kibana docker.elastic.co/kibana/kibana-oss:$ELASTIC_VERSION
 
-# elasticsearch needs some time to be available
-#before_script:
-#  - sleep 5
-
-# Assuming you have installed the travis-ci CLI tool, after you
-# create the Github repo and add it to Travis, run the
-# following command to finish PyPI deployment setup:
-# $ travis encrypt --add deploy.password
 deploy:
   provider: pypi
-  distributions: sdist bdist_wheel
-  user: thomann
+  distributions: sdist
+  user: "__token__"
   password:
-    secure: PLEASE_REPLACE_ME
+    secure: oVJoNGkEEJVg/yiR2vAO9EPv64Jo4aB9Ovq//GVIOI0VtnMehm3rsRc0uC491/7PjJJl4m9FOMfRZfZOXCovUW9CizhsCToOOPgmO/Dy3MmYn8njsAw9skawAkNm7kGBy8h6zzxgM/VhWaGbByNywiUsiKJRgCAbgoUe3K+pH5tSxUjJ6Cwjo+i0Ck2Kl6pN0p4tppOgswIn+qjgr7568LdzlpAXZq+kAPJdwgJtWJgNJJ1EHlHMRRzYNduye+DUopvD3nH2jNYkyO7cr9TmvuTKHIXByrcXP8Z3cBr/HRFREUvgE3RrLVjVkTF82o3jbwJ0HfqTOwa8vKIHhTuX0oo2A3BuLkbeTW9Uwmfzo+IgsuHuZP3Lh+WTjzdAtzioVA+KfvYTy8zIiJMH0GjP2gjPlhdWk+joQhcozChN9AJRuBln2biKNw+mtvC3PHzpc3Cnb1ksKLVS7+S1M39gMydIffcmrQGL86oWeFNzfDb74inYFjthfHcbZEHIzDZlxcR/KxIztYR1lD3L3/fesVvSUAxz7nODcms3nW2CJLRAIPC1aEH8UxJn8Y4yLP6z+3RCk0IF5r3tnmpUy2AW9gwf8E2HyaJqGGZrMTqUpDD6qwhlv7WQL8+UBpVux2t5BGen2cI3HIX7NIX46L5GBjR6qWHVNJIwGrUO+O58N8M=
   on:
     tags: true
-    repo: d-one/nlpeasy
     python: 3.7
+    skip_existing: true
