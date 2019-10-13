@@ -270,7 +270,7 @@ class SpacyEnrichment(MapToNamedTags):
                 if self._vec == True or self._vec == 'unnormalized':
                     ret['vec'] = doc.vector
                 if self._vec == True or self._vec == 'normalized':
-                    ret['vec_normalized'] = doc.vector / doc.vector_norm
+                    ret['vec_normalized'] = doc.vector / doc.vector_norm if doc.vector_norm != 0 else doc.vector
             if self._returnDoc:
                 ret['doc'] = doc
             docs.append(ret)
