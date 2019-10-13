@@ -96,18 +96,30 @@ class Kibana(object):
                 return defaultValue
         return result
 
+    def getSavedObjectIfExists(self, type, title, ifexists):
+        for i in self.getKibanaSavedObjects(type, title, 'title'):
+            if i['attributes']['title'] == title:
+                # it exists already
+                if ifexists == 'return_existing':
+                    print(f"reusing {type} {title}")
+                    return i['id'], None
+                if ifexists == 'error':
+                    raise ValueError(f"{type} {title} already exists!")
+                if ifexists == 'overwrite':
+                    self.deleteKibanaSavedObject(type, i['id'])
+                if ifexists != 'add':
+                    raise ValueError(f"ifexists={ifexists} not understood!!")
+        return False
+
     def addKibanaConfig(self, name, value, addToList=False, id=None):
         assert not addToList
         attributes = { name: value }
         res = self.postKibanaSavedObject('config', attributes, id=id)
         return res
-    def addKibanaIndexPattern(self, indexPattern, timeField=None, setDefaultIndexPattern=True, overwrite=False):
-        if not overwrite:
-            # TODO handle in postKibana URL parameter?
-            self.getKibanaSavedObjects('index-pattern', indexPattern)
-            for i in self.getKibanaSavedObjects('index-pattern',indexPattern,'title'):
-                if i['attributes']['title'] == indexPattern:
-                    return
+    def addKibanaIndexPattern(self, indexPattern, timeField=None, setDefaultIndexPattern=True, ifexists='return_existing'):
+        uid = self.getSavedObjectIfExists('index-pattern', indexPattern, ifexists)
+        if uid:
+            return uid, None
         attributes = {
             "title": indexPattern,
         }
@@ -118,9 +130,13 @@ class Kibana(object):
             self._defaultIndexPatternUID = uid
 
         return uid, result
-    def addKibanaSearch(self, title, columns, description=None, sort=None, setDefaultSearch=True, indexPatternUID=None):
+
+    def addKibanaSearch(self, title, columns, description=None, sort=None, setDefaultSearch=True, indexPatternUID=None, ifexists='return_existing'):
         if indexPatternUID is None:
             indexPatternUID = self._defaultIndexPatternUID
+        uid = self.getSavedObjectIfExists('search', title, ifexists)
+        if uid:
+            return uid, None
         searchSourceJSON = {
             "index": indexPatternUID,
             # "highlightAll": True,
@@ -140,7 +156,7 @@ class Kibana(object):
         if setDefaultSearch:
             self._defaultSearchUID = uid
         return uid, res
-    def addVisualization(self, title, viz, indexPatternUID=None):
+    def addVisualization(self, title, viz, indexPatternUID=None, ifexists='return_existing'):
         if indexPatternUID is None:
             indexPatternUID = self._defaultIndexPatternUID
         # visState = {
@@ -158,6 +174,9 @@ class Kibana(object):
         #     'type': visType,
         # }
         assert isinstance(viz, Visualization)
+        uid = self.getSavedObjectIfExists('visualization', title, ifexists)
+        if uid:
+            return uid, None
         visState = viz.visState(title)
         searchSourceJSON = {
             "index":indexPatternUID,
@@ -169,7 +188,10 @@ class Kibana(object):
             'kibanaSavedObjectMeta': {'searchSourceJSON': json.dumps(searchSourceJSON)}
         })
         return uid, res
-    def addDashboard(self, title, searchUID, visUIDs, timeFrom=None, timeTo=None, nVisCols=3, visW=16, visH=16, searchW=48, searchH=16):
+    def addDashboard(self, title, searchUID, visUIDs, timeFrom=None, timeTo=None, nVisCols=3, visW=16, visH=16, searchW=48, searchH=16, ifexists='return_existing'):
+        uid = self.getSavedObjectIfExists('dashboard', title, ifexists)
+        if uid:
+            return uid, None
         panels = [{
             'panelIndex': '1',
             'gridData': {'x': 0, 'y': 0, 'w': searchW, 'h': searchH, 'i': '1'},
@@ -208,29 +230,29 @@ class Kibana(object):
         uid, res = self.postKibanaSavedObject('dashboard',attributes)
         return uid, res
 
-    def setup_kibana(self, index, timeField=None, searchCols=[], visCols=None, dashboard=True, timeFrom=None, timeTo=None, sets=True):
+    def setup_kibana(self, index, timeField=None, searchCols=[], visCols=None, dashboard=True, timeFrom=None, timeTo=None, sets=True, ifexists='return_existing'):
         print(f'{index}: adding index-pattern')
-        ipUID, _ipRes = self.addKibanaIndexPattern(index, timeField, overwrite=True)
+        ipUID, _ipRes = self.addKibanaIndexPattern(index, timeField, ifexists=ifexists)
         if self.getKibanaConfig('defaultIndex') is None:
             # BUG the following is not really setting the defaultIndex as the Kibana UI see it...
             print(f'{index}: setting default index-pattern')
             self.addKibanaConfig('defaultIndex', ipUID)
         print(f'{index}: adding search')
-        seUID, _seRes = self.addKibanaSearch(index+"-search", searchCols)
+        seUID, _seRes = self.addKibanaSearch(index+"-search", searchCols, ifexists=ifexists)
         visUIDs = []
         for i in visCols:
             if isinstance(i, str):
                 i = HorizontalBar(i)
             print(f'{index}: adding visualisation for {i.field}')
-            uid, _res = self.addVisualization(f'[{index}] {i.field}', i)
+            uid, _res = self.addVisualization(f'[{index}] {i.field}', i, ifexists=ifexists)
             visUIDs.append(uid)
         if dashboard:
             print(f'{index}: adding dashboard')
-            daUID, _daRes = self.addDashboard(f'[{index}] Dashboard', seUID, visUIDs, timeFrom=timeFrom, timeTo=timeTo)
+            daUID, _daRes = self.addDashboard(f'[{index}] Dashboard', seUID, visUIDs, timeFrom=timeFrom, timeTo=timeTo, ifexists=ifexists)
         if sets:
             print(f'{index}: setting time defaults')
             self.set_kibana_timeDefaults(timeFrom, timeTo)
-        return {'index-patterh': ipUID, 'search': seUID, 'visualization': visUIDs, 'dashboard': daUID}
+        return {'index-pattern': ipUID, 'search': seUID, 'visualization': visUIDs, 'dashboard': daUID}
 
     def set_kibana_timeDefaults(self, timeFrom="now-15m", timeTo='now', mode='quick'):
         '''
