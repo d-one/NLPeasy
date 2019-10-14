@@ -22,6 +22,10 @@ before_install:
   - docker network create nlp_network
   - docker run --rm -itd --net=nlp_network -e ELASTIC_PASSWORD=$ELASTIC_PASSWORD -e discovery.type=single-node -e cluster.name=docker-cluster -e bootstrap.memory_lock=true -e "ES_JAVA_OPTS=-Xms512m -Xmx512m" -p 9200:9200 --name nlp_elastic docker.elastic.co/elasticsearch/elasticsearch-oss:$ELASTIC_VERSION
   - docker run --rm -itd --net=nlp_network -e SERVER_NAME=kibana -e ELASTICSEARCH_URL=http://nlp_elastic:9200 -e ELASTICSEARCH_HOSTS=http://nlp_elastic:9200 -p 5601:5601 --name nlp_kibana docker.elastic.co/kibana/kibana-oss:$ELASTIC_VERSION
+  - pip install codecov
+
+after_success:
+  - codecov # submit coverage
 
 deploy:
   provider: pypi

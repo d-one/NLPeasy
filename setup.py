@@ -15,7 +15,7 @@ requirements = [ 'pandas', 'spacy', 'elasticsearch', 'beautifulsoup4', 'vaderSen
 
 setup_requirements = ['pytest-runner', 'twine', ]
 
-test_requirements = ['pytest', 'scikit-learn', ]
+test_requirements = ['pytest', 'coverage', 'pytest-cov', 'scikit-learn', ]
 
 setup(
     author="Philipp Thomann",
