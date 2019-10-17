@@ -1,4 +1,5 @@
-# History
+History
+=======
 
 ## 0.6.2 (2019-10-14)
 - added `demo.ipynb`

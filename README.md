@@ -18,12 +18,13 @@ Usage
 
 For this example to completely work you need to have Python at least in Version 3.6 installed.
 Also you need to have install and start either
+
 - **Docker** <https://www.docker.com/get-started>, direct download links for
     [Mac (DMG)](https://download.docker.com/mac/stable/Docker.dmg) and
     [Windows (exe)](https://download.docker.com/win/stable/Docker%20for%20Windows%20Installer.exe).
 - **Elasticsearch** and **Kibana**:
-<https://www.elastic.co/downloads/> or
-<https://www.elastic.co/downloads/elasticsearch-oss> (pure Apache licensed version)
+    <https://www.elastic.co/downloads/> or
+    <https://www.elastic.co/downloads/elasticsearch-oss> (pure Apache licensed version)
 
 Then on the terminal issue:
 ```bash
@@ -95,12 +96,13 @@ Installation
 ------------
 
 Prerequisites:
+
 - Python 3 (we use Python 3.7)
 - Elastic: Several possibilities
     - Have Docker installed - needs to have the docker package installed (see below).
     - Install and start Elasticsearch and Kibana:
-    <https://www.elastic.co/downloads/> or
-    <https://www.elastic.co/downloads/elasticsearch-oss> (pure Apache licensed version)
+        <https://www.elastic.co/downloads/> or
+        <https://www.elastic.co/downloads/elasticsearch-oss> (pure Apache licensed version)
     - Use any running Elasticsearch and Kibana (on premise or cloud)...
 - Pretrained Models: See below for Spacy Language Models and WordVectors
 
