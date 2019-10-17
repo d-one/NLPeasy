@@ -64,10 +64,11 @@ Ready to contribute? Here's how to set up `nlpeasy` for local development.
 
     $ git clone git@github.com:your_name_here/nlpeasy.git
 
-3. Install your local copy into a virtualenv. Assuming you have virtualenvwrapper installed, this is how you set up your fork for local development::
+3. Install your local copy into a virtualenv. This is how you set up your fork for local development::
 
-    $ mkvirtualenv nlpeasy
     $ cd nlpeasy/
+    $ python -m venv venv
+    $ source venv/bin/activate
     $ python setup.py develop
 
 4. Create a branch for local development::
@@ -101,7 +102,7 @@ Before you submit a pull request, check that it meets these guidelines:
 1. The pull request should include tests.
 2. If the pull request adds functionality, the docs should be updated. Put
    your new functionality into a function with a docstring, and add the
-   feature to the list in README.rst.
+   feature to the list in README.md.
 3. The pull request should work for Python 3.6 and 3.7. Check
    https://travis-ci.org/d-one/nlpeasy/pull_requests
    and make sure that the tests pass for all supported Python versions.
@@ -111,14 +112,14 @@ Tips
 
 To run a subset of tests::
 
-$ py.test tests.test_nlpeasy
+$ py.test
 
 
 Deploying
 ---------
 
 A reminder for the maintainers on how to deploy.
-Make sure all your changes are committed (including an entry in HISTORY.rst).
+Make sure all your changes are committed (including an entry in HISTORY.md).
 Then run::
 
 $ bumpversion patch # possible: major / minor / patch
