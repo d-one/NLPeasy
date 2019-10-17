@@ -4,16 +4,60 @@
 
 
 import pandas as pd
+from typing import Optional
 import elasticsearch
 from . import kibana
 from . import docker
 
 from .util import Progbar, chunker, print_or_display, rmNanFromDict
 
-def connect_elastic(dockerPrefix='nlp', startOnDocker=True,
-            host='localhost', elasticPort=None, kibanaPort=None, kibanaHost=None,
-            elkVersion='7.1.1', mountVolumePrefix=None,
-            verbose=True, failOnNotAvailable=False, **kwargs):
+
+def connect_elastic(dockerPrefix: str ='nlp', startOnDocker: bool = True,
+            host: str = 'localhost', elasticPort: Optional[int] = None, kibanaPort: Optional[int] = None, kibanaHost: str = None,
+            elkVersion: str = '7.1.1', mountVolumePrefix: Optional[str] = None,
+            verbose: bool = True, failOnNotAvailable: bool = False, **kwargs) -> "ElasticStack":
+    """Connect to running Elasticsearch and Kibana servers or start one on Docker.
+
+    First this will try to connect to the specified host/ports.
+    If no server can be reached then the docker is explored whether containers with name
+    `{dockerPrefix}_elastic` and `{dockerPrefix}_kibana` are running and if found they are used.
+    Else, such containers will be started.
+
+    Parameters
+    ----------
+    dockerPrefix :
+        Docker containers for Elasticsearch and Kibana, and the docker network will be prefixed
+        with this + '_' as is customary e.g. in docker-compose
+    startOnDocker :
+        If there is no reachable Elasticsearch server, should one be started on Docker (default: True)
+    host :
+        The host to try to connect to (default: 'localhost')
+    elasticPort :
+        The port on which try to connect to or start Elasticsearch on if not yet started.
+        If ``None`` (default) then docker will find a port and the returned ELK will be using that.
+    kibanaPort :
+        The port on which try to connect to or start Kibana on if not yet started.
+        If ``None`` (default) then docker will find a port and the returned ELK will be using that.
+    kibanaHost :
+        The host to try to connect to for Kibana.
+        If ``None`` (default) the same as ``host``.
+    elkVersion :
+        The version of the Elastic Stack to download if starting on Docker.
+    mountVolumePrefix :
+        If a docker container will be started this specifies where in the filesystem of the host
+        the data should be saved. If ``None`` (default) data is not saved and will not survive restarts of the container.
+    verbose :
+        Should information be printed out.
+    failOnNotAvailable :
+        Should there be an error raised.
+    kwargs :
+        Passed to :meth:`~nlpeasy.docker.start_elastic_on_docker`
+
+    Returns
+    -------
+    ElasticStack
+        The elastic stack found.
+    """
     kibanaHost = kibanaHost or host
     elasticPort = elasticPort or 9200
     kibanaPort = kibanaPort or 5601
@@ -240,6 +284,21 @@ class ElasticStack(object):
         })
 
     def show_kibana(self, how=None, *args, **kwargs):
+        """Opens the Kibana UI either by opening it in the default webbrowser or by showing the URL.
+
+        Parameters
+        ----------
+        how :
+            One or more of ``'print'``, ``'webbrowser'``, or ``'jupyter'``
+        args :
+            passed to :meth:`~nlpeasy.kibana.Kibana.kibanaUrl`
+        kwargs
+            passed to :meth:`~nlpeasy.kibana.Kibana.kibanaUrl`
+
+        Returns
+        -------
+        If ``how`` contains ``'jupyter'`` then the IPython display HTML with a link.
+        """
         self.kibana.show_kibana(how=how, *args, **kwargs)
 
 __DEFAULT_STACK = None

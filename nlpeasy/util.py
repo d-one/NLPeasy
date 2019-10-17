@@ -35,15 +35,21 @@ def insert_with_progbar(engine, df, name, if_exists='replace', chunksize=1000, *
 class Progbar(object):
     """Displays a progress bar.
 
-    # Arguments
-        target: Total number of steps expected, None if unknown.
-        width: Progress bar width on screen.
-        verbose: Verbosity mode, 0 (silent), 1 (verbose), 2 (semi-verbose)
-        stateful_metrics: Iterable of string names of metrics that
-            should *not* be averaged over time. Metrics in this list
-            will be displayed as-is. All others will be averaged
-            by the progbar before display.
-        interval: Minimum visual progress update interval (in seconds).
+    Attributes
+    ----------
+    target :
+        Total number of steps expected, None if unknown.
+    width :
+        Progress bar width on screen.
+    verbose :
+        Verbosity mode, 0 (silent), 1 (verbose), 2 (semi-verbose)
+    stateful_metrics :
+        Iterable of string names of metrics that
+        should *not* be averaged over time. Metrics in this list
+        will be displayed as-is. All others will be averaged
+        by the progbar before display.
+    interval :
+        Minimum visual progress update interval (in seconds).
     """
 
     def __init__(self, target, width=30, verbose=1, interval=0.05,
@@ -69,13 +75,15 @@ class Progbar(object):
     def update(self, current, values=None):
         """Updates the progress bar.
 
-        # Arguments
-            current: Index of current step.
-            values: List of tuples:
-                `(name, value_for_last_step)`.
-                If `name` is in `stateful_metrics`,
-                `value_for_last_step` will be displayed as-is.
-                Else, an average of the metric over time will be displayed.
+        Parameters
+        ----------
+        current :
+            Index of current step.
+        values : List[tuple]
+            `(name, value_for_last_step)`.
+            If `name` is in `stateful_metrics`,
+            `value_for_last_step` will be displayed as-is.
+            Else, an average of the metric over time will be displayed.
         """
         values = values or []
         for k, v in values:

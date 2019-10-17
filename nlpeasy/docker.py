@@ -23,7 +23,7 @@ def start_elastic_on_docker(prefix, errorIfExists=False,
                             client=dockerpy.from_env(), forcePull=False, rm=True,
                             setAsDefaultElasticStack=True):
     """
-    stack = start_elastic_on_docker('mynlpstack', version='6.3.2')
+    >>> stack = start_elastic_on_docker('mynlpstack', version='6.3.2')
     """
     assert kibanaPluginDirectory is None
 

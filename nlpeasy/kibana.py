@@ -8,6 +8,8 @@ import requests
 import json
 from . import util
 
+from typing import Optional, Sequence, Mapping, Union
+
 class Kibana(object):
     def __init__(self, host='localhost', port=5601, protocol='http',
                 verify_certs=True, **kwargs):
@@ -27,7 +29,22 @@ class Kibana(object):
         resp = requests.head(self.kibanaUrl())
         return resp.status_code == 200
 
-    def show_kibana(self, how=None, *args, **kwargs):
+    def show_kibana(self, how: Optional[Union[str, Sequence[str]]] = None, *args, **kwargs) -> Optional["HTML"]:
+        """Opens the Kibana UI either by opening it in the default webbrowser or by showing the URL.
+
+        Parameters
+        ----------
+        how :
+            One or more of ``'print'``, ``'webbrowser'``, or ``'jupyter'``
+        args :
+            passed to Kibana.kibanaUrl
+        kwargs
+            passed to Kibana.kibanaUrl
+
+        Returns
+        -------
+        If ``how`` contains ``'jupyter'`` then the IPython display HTML with a link.
+        """
         if how is None:
             how = 'jupyter' if util.IS_JUPYTER else 'webbrowser'
             # TODO can we figure out "non-interactive" to put how='print' then?

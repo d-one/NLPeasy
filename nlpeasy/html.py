@@ -14,11 +14,13 @@ except ImportError as identifier:
 
 def parse_html(file, select={}, limit=None, autounbox=True, addMetaNames=True, metaNamesPrefix='meta_', tags=['h1','h2','h3','b','em']):
     """
-    parse_html('./papers.nips.cc/paper/*.html', select={
-    'title': 'title',
-    'message': 'p.abstract',
-    'author': 'li.author a'
-    }).apply(year='_.meta_citation_publication_date')
+    Parse HTML from file:
+
+    >>> parse_html('./papers.nips.cc/paper/*.html', select={
+    ... 'title': 'title',
+    ... 'message': 'p.abstract',
+    ... 'author': 'li.author a'
+    ... }).apply(year='_.meta_citation_publication_date')
     """
     files = glob.glob(file)
     rows = []
@@ -58,5 +60,5 @@ def parse_html(file, select={}, limit=None, autounbox=True, addMetaNames=True, m
                     if col in r and len(r[col]) == 1:
                             r[col] = r[col][0]
         lens = { k: len for k in all_cols }
-        
+
     return pd.DataFrame(rows)

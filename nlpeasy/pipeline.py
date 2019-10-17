@@ -10,9 +10,59 @@ from . import elastic
 from . import kibana
 from .util import chunker, Tictoc
 
+from typing import Optional, List, Union, Mapping, Callable
+from .elastic import ElasticStack
+
 class Pipeline(object):
-    def __init__(self, index, textCols=None, tagCols=None, numCols=None, geoPointCols = None,
-            idCol=None, dateCol=None, suggests=None, elk=None, lang='english', doctype='_doc'):
+    """
+    This class is at the heart of NLPeasy: Define a Pipeline for enrichment of textual data.
+
+    This class registers the type of columns. These types are used in different places, notably in
+    the decision what visuals to produce in Kibana.
+
+    For enrichment any number of `Stage`s can be added using the `+=` operator.
+
+    Attributes
+    ----------
+    _textCols : List[str]
+        The names of the textual columns
+    _tagCols : List[str]
+        The names of the tag columns: These are columns with a couple of discrete values (aka categories or factors)
+    _numCols : List[str]
+        The names of columns that contain numeric values
+
+
+    Parameters
+    ----------
+    index :
+        Name of the Elasticsearch index.
+    textCols :
+        List of names of textual columns in the dataframes being processed.
+    tagCols
+        List of names of tag columns in the dataframes being processed.
+    numCols
+        List of names of numeric columns in the dataframes being processed.
+    geoPointCols
+        List of names of geo location columns in the dataframes being processed.
+        (not tested yet).
+    idCol :
+        Name of the column to be used as ID. (Optional)
+        TODO: should be dataframe index by default?
+    dateCol :
+        Name of the column used for data filtering in Kibana. (Optional)
+    suggests :
+        Name of the column used for a suggest analyzer in Elasticsearch.
+    elk :
+        The ElasticStack to setup indices, write documents, and create Kibana dashboards in.
+    lang :
+        The language used for Elasticsearch analyzers.
+    doctype :
+        The doctype to produce in Elasticsearch. The default ('_doc') is recommended to not be changed.
+    """
+    def __init__(self, index: str, textCols: Optional[List[str]] = None, tagCols: Optional[List[str]] =None,
+                 numCols: Optional[List[str]] =None, geoPointCols: Optional[List[str]] = None,
+                 idCol: Optional[str] = None, dateCol: Optional[str] = None, suggests: Optional[str] = None,
+                 elk: ElasticStack = None, lang: str ='english', doctype: str ='_doc'):
         self._pipeline = []
         self._index = index
         self._doctype=doctype
@@ -63,9 +113,50 @@ class Pipeline(object):
             searchCols=self._textCols, visCols=visCols, dashboard=True,
             timeFrom=timeFrom, timeTo=timeTo, **kwargs)
     def create_kibana_dashboard(self, **kwargs):
+        """Creates a default Kibana dashboard.
+
+        This will setup all the necessary items in Kibana (index-pattern, search, visualisations, and dashboard).
+        Currently the type of a column in this very pipeline will determine the type of visualisation:
+
+        * textCols yield WordClouds
+        * numCols and the dateCol yield Histograms
+        * tagCols yield BarPlots
+
+        Parameters
+        ----------
+        kwargs :
+            Passed to :meth:`~nlpeasy.kibana.Kibana.setup_kibana`
+        """
         self.setup_kibana(**kwargs)
 
-    def process(self, texts, writeElastic=None, batchSize=1000, returnProcessed=True, progbar=True):
+    def process(self, texts:  pd.DataFrame, writeElastic: Optional[bool] = None, batchSize: int = 1000,
+                returnProcessed: bool = True, progbar: bool = True):
+        """Runs all the texts through all stages, writes the enriched rows to ElasticSearch, and returns them.
+
+        Parameters
+        ----------
+        texts :
+            The texts to process. Should provide all the needed columns.
+        writeElastic :
+            If ``True`` will write to ``self.elk`` ElasticSearch.
+            If ``(None)`` then this is only done if ``self.elk`` is not ``None``
+        batchSize :
+            Number of rows to process and possibly upload together.
+            If this is too small, overhead in writing to Elasticsearch might be high,
+            as well as for some of the Stages (notably Spacy if used).
+            If this is too big, RAM might become an issue.
+            Also the progressbar is only updated after each batch.
+        returnProcessed :
+            Should the enriched dataframe be returned.
+            Setting it to ``False`` saves RAM.
+        progbar :
+            Display a progress bar.
+
+        Returns
+        -------
+            Enriched texts if ``returnProcessed=True``.
+
+        """
         if writeElastic is None:
             writeElastic = self.elk is not None
         if writeElastic:
@@ -161,6 +252,9 @@ class MapToTags(PipelineStage):
         return text
 
 class RegexTag(MapToTags):
+    """
+    Stage that extracts tags from texts based on Regular Expressions.
+    """
     def __init__(self, regex='doi:[^ ]+', *args, **kwargs):
         super(RegexTag, self).__init__(*args, **kwargs)
         import re
@@ -170,6 +264,10 @@ class RegexTag(MapToTags):
         return y
 
 class VaderSentiment(MapToSingle):
+    """
+    This is a simple Stage that adds a column recording the sentiment of a text.
+    It uses the Vader library, which gives a rule based sentiment for english texts.
+    """
     def __init__(self, *args, **kwargs):
         super(VaderSentiment, self).__init__(*args, **kwargs)
         from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
@@ -228,9 +326,39 @@ class MapToNamedTags(PipelineStage):
 
 
 class SpacyEnrichment(MapToNamedTags):
-    # =spacy.load('en')
-    def __init__(self, nlp='en_core_web_sm', *args, tags=['ents','subj','verb'], posNum=True, vec=False, returnDoc=False,
-                batch_size=1000, n_threads=-1, **kwargs):
+    """
+    Stage that adds many enrichments based on spaCy models: Named Entity Recognition (NER), Part of Speech (POS),
+    and linguistic features.
+
+    For any text column specified this will produce columns of the form ``{textcol_name}_{enrichment}``.
+
+    Parameters
+    ----------
+    nlp :
+        spaCy language model function or its name.
+    args :
+        Passed to super.
+    tags :
+        Which tag columns should be produced: any subset of ``['ents', 'subj', 'verb']``.
+    posNum :
+        Which parts of speec (POS) should be produced. ``True`` (default) means all.
+    vec :
+        If ``True`` produce spaCy document vectors, both raw and normalized.
+        Or one of ``'vec'`` or ``'vec_normalized'``
+    returnDoc :
+        Return the spaCy doc object per as ``{textcol_name}_doc``.
+        This can be then used for further analysis.
+    batch_size :
+        Passed to spaCy's pipe.
+    n_threads :
+        Passed to spaCy's pipe.
+    kwargs :
+        Passed to super.
+    """
+    def __init__(self, nlp: Union[str,Callable] = 'en_core_web_sm', *args: List,
+                 tags: List[str] = ['ents', 'subj', 'verb'], posNum: Union[bool, List[str]] = True,
+                 vec: Union[bool, str] = False, returnDoc: bool = False, batch_size: int = 1000, n_threads: int = -1,
+                 **kwargs: Mapping) -> "SpacyEnrichment":
         super(SpacyEnrichment, self).__init__(*args, tags=tags, ignoreUploadCols=['doc','vec','vec_normalized'], **kwargs)
         self._nlp = spacy.load(nlp) if isinstance(nlp, str) else nlp
         self._posNum = posNum
