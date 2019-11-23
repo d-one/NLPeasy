@@ -3,13 +3,12 @@
 """Main module."""
 
 
-import pandas as pd
 from typing import Optional
 import elasticsearch
 from . import kibana
 from . import docker
 
-from .util import Progbar, chunker, print_or_display, rmNanFromDict
+from .util import chunker, print_or_display, rmNanFromDict
 
 
 def connect_elastic(
@@ -54,7 +53,8 @@ def connect_elastic(
         The version of the Elastic Stack to download if starting on Docker.
     mountVolumePrefix :
         If a docker container will be started this specifies where in the filesystem of the host
-        the data should be saved. If ``None`` (default) data is not saved and will not survive restarts of the container.
+        the data should be saved. If ``None`` (default) data is not saved and will not survive
+        restarts of the container.
     verbose :
         Should information be printed out.
     failOnNotAvailable :
@@ -312,7 +312,7 @@ class ElasticStack(object):
             if deleteOld:
                 try:
                     self.es.indices.delete(index)
-                except:
+                except:  # noqa: E722
                     pass
             self.es.indices.create(index=index, body=body)  # , ignore=[]
             return body
@@ -336,7 +336,7 @@ class ElasticStack(object):
         if deleteOld:
             try:
                 self.es.indices.delete(index)
-            except:
+            except:  # noqa: E722
                 pass
         # createIndex(index=index, create=deleteOld)
 
@@ -380,6 +380,7 @@ __DEFAULT_STACK = None
 
 
 def defaultStack():
+    global __DEFAULT_STACK
     if __DEFAULT_STACK is None:
         __DEFAULT_STACK = ElasticStack()
     return __DEFAULT_STACK

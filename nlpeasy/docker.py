@@ -4,15 +4,13 @@
 # TODO maybe rename this module to docker_util so we are distinct from the docker-py we use?
 
 
-import glob
 from pathlib import Path
-import pandas as pd
 
 from . import elastic
 
 try:
     import docker as dockerpy
-except ImportError as identifier:
+except ImportError:
     raise Exception(
         "Please instell the python docker package for start_elastic_on_docker to work: pip install docker"
     )
@@ -47,7 +45,7 @@ def start_elastic_on_docker(
         client.images.pull(el_im)
         client.images.pull(ki_im)
     network = f"{prefix}_network"
-    network_obj = get_network(network)
+    network_obj = get_network(network)  # noqa: F841
 
     el_name = prefix + "_elastic"
     el_ulimits = [

@@ -136,7 +136,7 @@ class Progbar(object):
             if self.target is not None and self.target > 0:
                 try:
                     numdigits = int(np.floor(np.log10(self.target))) + 1
-                except:
+                except:  # noqa: E722
                     numdigits = 1
                 barstr = "%%%dd/%d [" % (numdigits, self.target)
                 bar = barstr % current
@@ -260,7 +260,7 @@ class Tictoc(object):
         self._prefix = None
 
     def tic(self, name):
-        if self._summarizer != False:
+        if self._summarizer is not False:
             self._summarizer[name]
         self.stack.append((name, _time_ns()))
 
@@ -271,7 +271,7 @@ class Tictoc(object):
         if self.output == "print":
             timeString = formatTime_ns(dur)
             print(f"{name}: {timeString}")
-        if self._summarizer != False:
+        if self._summarizer is not False:
             self._summarizer[name] += dur
 
     def clear(self):

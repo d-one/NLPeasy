@@ -6,7 +6,6 @@ import numbers
 import pandas as pd
 import spacy
 
-from . import elastic
 from . import kibana
 from .util import chunker, Tictoc
 
@@ -379,7 +378,7 @@ class Split(MapToTags):
 
 
 ###########
-## spaCy ##
+#  spaCy  #
 ###########
 class MapToNamedTags(PipelineStage):
     def __init__(self, cols, tags, ignoreUploadCols, coerceValsToStr=True):
@@ -503,13 +502,13 @@ class SpacyEnrichment(MapToNamedTags):
                 ret["verb"] = list(tok.lemma.loc[tok.pos == "VERB"])
 
             posNum = tok.pos.value_counts()
-            posSel = tok.pos.unique() if self._posNum == True else self._posNum
+            posSel = tok.pos.unique() if self._posNum is True else self._posNum
             for pos in posSel:
                 ret["num_" + pos] = posNum.loc[pos]
             if self._vec:
-                if self._vec == True or self._vec == "unnormalized":
+                if self._vec is True or self._vec == "unnormalized":
                     ret["vec"] = doc.vector
-                if self._vec == True or self._vec == "normalized":
+                if self._vec is True or self._vec == "normalized":
                     ret["vec_normalized"] = (
                         doc.vector / doc.vector_norm
                         if doc.vector_norm != 0

@@ -9,7 +9,7 @@ from .util import Progbar
 
 try:
     import bs4
-except ImportError as identifier:
+except ImportError:
     raise Exception(
         "Please instell BeautifulSoup4 to for parse_html to work: pip install beautifulsoup4"
     )
@@ -70,6 +70,6 @@ def parse_html(
                 for r in rows:
                     if col in r and len(r[col]) == 1:
                         r[col] = r[col][0]
-        lens = {k: len for k in all_cols}
+        lens = {k: len for k in all_cols}  # noqa: F841
 
     return pd.DataFrame(rows)

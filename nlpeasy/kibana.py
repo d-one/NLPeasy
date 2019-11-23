@@ -3,12 +3,11 @@
 """Kibana module."""
 
 
-import pandas
 import requests
 import json
 from . import util
 
-from typing import Optional, Sequence, Mapping, Union
+from typing import Optional, Sequence, Union
 
 
 class Kibana(object):
@@ -408,7 +407,8 @@ class Kibana(object):
 
     def set_kibana_timeQuickRange(self, display, timeFrom, timeTo, section=3, id=None):
         """
-        For accepted formats see https://www.elastic.co/guide/en/elasticsearch/reference/6.7/common-options.html#date-math
+        For accepted formats see
+        https://www.elastic.co/guide/en/elasticsearch/reference/6.7/common-options.html#date-math
         """
         if id is None:
             id = self.kibana_version()
@@ -435,7 +435,8 @@ class Kibana(object):
         return self._kibana_version
 
     def show_kibana_jupyter(self, height=500):
-        # see e.g. https://github.com/tensorflow/tensorboard/blob/d9092143511cb04e4bfc904820305f1be45c67b3/tensorboard/notebook.py
+        # see e.g.
+        # https://github.com/tensorflow/tensorboard/blob/d9092143511cb04e4bfc904820305f1be45c67b3/tensorboard/notebook.py
         from IPython.display import IFrame
 
         url = self.kibanaUrl()
