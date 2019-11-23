@@ -16,7 +16,8 @@ def elk():
 
     Reuse the same elk among the whole testing session by setting scope="session"
     """
-    elk = ne.connect_elastic(dockerPrefix='nlp', elkVersion='7.4.0', mountVolumePrefix=None)
+    elk = ne.connect_elastic(dockerPrefix='nlp', elkVersion='7.4.2', mountVolumePrefix=None)
+    elk.waitFor()
     return elk
 
 

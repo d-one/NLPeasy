@@ -126,13 +126,25 @@ class ElasticStack(object):
             urllib_logger.setLevel(logging.FATAL)
             orig_max_retries = self.es.transport.max_retries
             self.es.transport.max_retries = 0
-            result = self.es.ping()
+            result = self.es.ping() and self.kibana.alive()
         except Exception as e:
             if verbose:
                 print(e)
         self.es.transport.max_retries = orig_max_retries
         urllib_logger.setLevel(orig_level)
         return result
+
+    def waitFor(self, timeout: float=10, interval: float=0.5, raise_error=False, verbose=False) -> bool:
+        from datetime import datetime
+        from time import sleep
+        start = datetime.now()
+        while timeout <= 0 or (datetime.now() - start).seconds < timeout:
+            if self.alive(verbose=verbose):
+                return True
+            sleep(interval)
+        if raise_error:
+            raise RuntimeError("")
+        return False
 
     def url(self):
         return f"{self._protocol}://{self._host}:{self._elasticPort}"

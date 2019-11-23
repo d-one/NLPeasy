@@ -27,7 +27,7 @@ class Kibana(object):
             path = '/'+path
         return f"{self._protocol}://{self._host}:{self._port}{path}"
     def alive(self, verbose=True):
-        resp = requests.head(self.kibanaUrl())
+        resp = requests.head(self.kibanaUrl('api/status'))
         return resp.status_code == 200
 
     def show_kibana(self, how: Optional[Union[str, Sequence[str]]] = None, *args, **kwargs) -> Optional["HTML"]:
