@@ -3,8 +3,8 @@
 """Top-level package for NLPeasy."""
 
 __author__ = """Philipp Thomann"""
-__email__ = 'philipp.thomann@d-one.ai'
-__version__ = '0.6.2'
+__email__ = "philipp.thomann@d-one.ai"
+__version__ = "0.6.2"
 
 from .pipeline import *
 from .docker import *
