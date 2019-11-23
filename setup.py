@@ -13,6 +13,7 @@ with open("README.md") as readme_file:
 
 requirements = [
     "pandas",
+    "requests",
     "spacy",
     "elasticsearch",
     "beautifulsoup4",

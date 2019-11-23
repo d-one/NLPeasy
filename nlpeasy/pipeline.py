@@ -36,19 +36,19 @@ class Pipeline(object):
     ----------
     index :
         Name of the Elasticsearch index.
-    textCols :
+    text_cols :
         List of names of textual columns in the dataframes being processed.
-    tagCols
+    tag_cols
         List of names of tag columns in the dataframes being processed.
-    numCols
+    num_cols
         List of names of numeric columns in the dataframes being processed.
-    geoPointCols
+    geopoint_cols
         List of names of geo location columns in the dataframes being processed.
         (not tested yet).
-    idCol :
+    id_col :
         Name of the column to be used as ID. (Optional)
         TODO: should be dataframe index by default?
-    dateCol :
+    date_col :
         Name of the column used for data filtering in Kibana. (Optional)
     suggests :
         Name of the column used for a suggest analyzer in Elasticsearch.
@@ -63,12 +63,12 @@ class Pipeline(object):
     def __init__(
         self,
         index: str,
-        textCols: Optional[List[str]] = None,
-        tagCols: Optional[List[str]] = None,
-        numCols: Optional[List[str]] = None,
-        geoPointCols: Optional[List[str]] = None,
-        idCol: Optional[str] = None,
-        dateCol: Optional[str] = None,
+        text_cols: Optional[List[str]] = None,
+        tag_cols: Optional[List[str]] = None,
+        num_cols: Optional[List[str]] = None,
+        geopoint_cols: Optional[List[str]] = None,
+        id_col: Optional[str] = None,
+        date_col: Optional[str] = None,
         suggests: Optional[str] = None,
         elk: ElasticStack = None,
         lang: str = "english",
@@ -77,13 +77,13 @@ class Pipeline(object):
         self._pipeline = []
         self._index = index
         self._doctype = doctype
-        self._textCols = textCols or []
-        self._tagCols = tagCols or []
-        self._numCols = numCols or []
-        self._geoPointCols = geoPointCols or []
+        self._textCols = text_cols or []
+        self._tagCols = tag_cols or []
+        self._numCols = num_cols or []
+        self._geoPointCols = geopoint_cols or []
         self._ignoreUploadCols = []
-        self._dateCol = dateCol
-        self._idCol = idCol
+        self._dateCol = date_col
+        self._idCol = id_col
         self._suggests = suggests or []
         self._lang = lang
         self.elk = elk
@@ -92,36 +92,35 @@ class Pipeline(object):
 
     def add(self, x):
         self._pipeline.append(x)
-        x.addingToPipeline(self)
+        x.adding_to_pipeline(self)
 
     def __iadd__(self, other):
         self.add(other)
         return self
 
-    def suggests(self, suggestCols):
-        self._suggests = suggestCols
+    def suggests(self, suggest_cols):
+        self._suggests = suggest_cols
 
     def setup_elastic(self, **kwargs):
         if self.elk is not None:
-            self.elk.createIndex(
+            self.elk.create_index(
                 self._index,
                 self._doctype,
-                textCols=self._textCols,
-                tagCols=self._tagCols,
-                dateCol=self._dateCol,
-                geoPointCols=self._geoPointCols,
+                text_cols=self._textCols,
+                tag_cols=self._tagCols,
+                geopoint_cols=self._geoPointCols,
                 lang=self._lang,
                 **kwargs,
             )
 
     def setup_kibana(self, **kwargs):
-        visCols = []
+        vis_cols = []
         if self._dateCol:
-            visCols.append(kibana.DateHistogram(self._dateCol))
+            vis_cols.append(kibana.DateHistogram(self._dateCol))
         for i in self._tagCols:
-            visCols.append(kibana.HorizontalBar(i))
+            vis_cols.append(kibana.HorizontalBar(i))
         for i in self._textCols:
-            visCols.append(kibana.TagCloud(i))
+            vis_cols.append(kibana.TagCloud(i))
         for i in self._numCols:
             interval = 0.1
             if i in self._min_max:
@@ -132,18 +131,18 @@ class Pipeline(object):
                     interval = (max - min) / 100
                 else:
                     print(f"Trying to do a histogram on str values: {min!r} - {max!r}")
-            visCols.append(kibana.Histogram(i, interval))
-        timeFrom, timeTo = None, None
+            vis_cols.append(kibana.Histogram(i, interval))
+        time_from, time_to = None, None
         if self._dateCol in self._min_max:
-            timeFrom, timeTo = self._min_max[self._dateCol]
+            time_from, time_to = self._min_max[self._dateCol]
         self.elk.kibana.setup_kibana(
             self._index,
             self._dateCol,
-            searchCols=self._textCols,
-            visCols=visCols,
+            search_cols=self._textCols,
+            vis_cols=vis_cols,
             dashboard=True,
-            timeFrom=timeFrom,
-            timeTo=timeTo,
+            time_from=time_from,
+            time_to=time_to,
             **kwargs,
         )
 
@@ -167,9 +166,9 @@ class Pipeline(object):
     def process(
         self,
         texts: pd.DataFrame,
-        writeElastic: Optional[bool] = None,
-        batchSize: int = 1000,
-        returnProcessed: bool = True,
+        write_elastic: Optional[bool] = None,
+        batchsize: int = 1000,
+        return_processed: bool = True,
         progbar: bool = True,
     ):
         """Runs all the texts through all stages, writes the enriched rows to ElasticSearch, and returns them.
@@ -178,16 +177,16 @@ class Pipeline(object):
         ----------
         texts :
             The texts to process. Should provide all the needed columns.
-        writeElastic :
+        write_elastic :
             If ``True`` will write to ``self.elk`` ElasticSearch.
             If ``(None)`` then this is only done if ``self.elk`` is not ``None``
-        batchSize :
+        batchsize :
             Number of rows to process and possibly upload together.
             If this is too small, overhead in writing to Elasticsearch might be high,
             as well as for some of the Stages (notably Spacy if used).
             If this is too big, RAM might become an issue.
             Also the progressbar is only updated after each batch.
-        returnProcessed :
+        return_processed :
             Should the enriched dataframe be returned.
             Setting it to ``False`` saves RAM.
         progbar :
@@ -198,14 +197,14 @@ class Pipeline(object):
             Enriched texts if ``returnProcessed=True``.
 
         """
-        if writeElastic is None:
-            writeElastic = self.elk is not None
-        if writeElastic:
+        if write_elastic is None:
+            write_elastic = self.elk is not None
+        if write_elastic:
             self.setup_elastic()
         results = []
 
         self.tic("global", "process")
-        for chunk in chunker(texts, batchSize, progbar=progbar):
+        for chunk in chunker(texts, batchsize, progbar=progbar):
             x = chunk
             for i, p in enumerate(self._pipeline):
                 if not progbar:
@@ -213,14 +212,14 @@ class Pipeline(object):
                 self.tic(f"Stage {i+1}", p.name)
                 x = p.process(x)
                 self.toc()
-            if writeElastic:
+            if write_elastic:
                 self.write_elastic(
                     x,
-                    chunksize=batchSize,
-                    showProgbar=not progbar,
-                    setKibanaTimeDefault=False,
+                    chunksize=batchsize,
+                    progbar=not progbar,
+                    set_kibana_time_default=False,
                 )
-            if returnProcessed:
+            if return_processed:
                 results.append(x)
         self.toc()
         # return results
@@ -240,24 +239,23 @@ class Pipeline(object):
         return results
 
     def write_elastic(
-        self, texts, setKibanaTimeDefault=True, chunksize=1000, showProgbar=True
+        self, texts, set_kibana_time_default=True, chunksize=1000, progbar=True
     ):
         self.tic("elastic", "upload")
-        self.elk.loadDocs(
+        self.elk.load_docs(
             index=self._index,
             doctype=self._doctype,
-            dateCol=self._dateCol,
-            idCol=self._idCol,
-            suggestCol=self._suggests,
+            id_col=self._idCol,
+            suggest_col=self._suggests,
             texts=texts.drop(columns=self._ignoreUploadCols, errors="ignore"),
             chunksize=chunksize,
-            showProgbar=showProgbar,
+            progbar=progbar,
         )
         self.toc()
-        if setKibanaTimeDefault and self._dateCol is not None:
-            self.elk._kibana.set_kibana_timeDefaults(
-                timeFrom=str(texts[self._dateCol].min()),
-                timeTo=str(texts[self._dateCol].max()),
+        if set_kibana_time_default and self._dateCol is not None:
+            self.elk._kibana.set_kibana_time_defaults(
+                time_from=str(texts[self._dateCol].min()),
+                time_to=str(texts[self._dateCol].max()),
             )
 
     def tic(self, part, name):
@@ -271,7 +269,7 @@ class PipelineStage(object):
     def __init__(self, name=None):
         self.name = type(self).__name__ if name is None else name
 
-    def addingToPipeline(self, pipeline):
+    def adding_to_pipeline(self, pipeline):
         self._pipeline = pipeline
 
     def doprocess(self, x):
@@ -288,10 +286,10 @@ class PipelineStage(object):
 
 
 class MapToSingle(PipelineStage):
-    def __init__(self, col, outCol):
+    def __init__(self, col, out_col):
         super(MapToSingle, self).__init__()
         self._col = col if isinstance(col, str) else col[0]
-        self._outCol = outCol
+        self._outCol = out_col
 
     def process(self, text):
         # print(self._col, type(text[self._col]))
@@ -302,13 +300,13 @@ class MapToSingle(PipelineStage):
 
 
 class MapToTags(PipelineStage):
-    def __init__(self, cols, outCol):
+    def __init__(self, cols, out_col):
         super(MapToTags, self).__init__()
         self._cols = [cols] if isinstance(cols, str) else cols
-        self._outCol = outCol
+        self._outCol = out_col
 
-    def addingToPipeline(self, pipeline):
-        super(MapToTags, self).addingToPipeline(pipeline)
+    def adding_to_pipeline(self, pipeline):
+        super(MapToTags, self).adding_to_pipeline(pipeline)
         pipeline._tagCols.append(self._outCol)
 
     def process(self, text):
@@ -351,8 +349,8 @@ class VaderSentiment(MapToSingle):
 
         self._analyzer = SentimentIntensityAnalyzer()
 
-    def addingToPipeline(self, pipeline):
-        super(VaderSentiment, self).addingToPipeline(pipeline)
+    def adding_to_pipeline(self, pipeline):
+        super(VaderSentiment, self).adding_to_pipeline(pipeline)
         pipeline._numCols.append(self._outCol)
 
     def doprocess(self, x):
@@ -381,18 +379,18 @@ class Split(MapToTags):
 #  spaCy  #
 ###########
 class MapToNamedTags(PipelineStage):
-    def __init__(self, cols, tags, ignoreUploadCols, coerceValsToStr=True):
+    def __init__(self, cols, tags, ignore_upload_cols, coerce_vals_to_str=True):
         super(MapToNamedTags, self).__init__()
         self._cols = [cols] if isinstance(cols, str) else cols
         self._tags = tags
         self._outCols = [c + "_" + k for c in self._cols for k in tags]
         self._ignoreUploadCols = [
-            c + "_" + k for c in self._cols for k in ignoreUploadCols
+            c + "_" + k for c in self._cols for k in ignore_upload_cols
         ]
-        self._coerceValsToStr = coerceValsToStr
+        self._coerceValsToStr = coerce_vals_to_str
 
-    def addingToPipeline(self, pipeline):
-        super(MapToNamedTags, self).addingToPipeline(pipeline)
+    def adding_to_pipeline(self, pipeline):
+        super(MapToNamedTags, self).adding_to_pipeline(pipeline)
         # TODO discern between tagCols and numCols...
         pipeline._tagCols.extend(self._outCols)
         pipeline._ignoreUploadCols.extend(self._ignoreUploadCols)
@@ -430,12 +428,12 @@ class SpacyEnrichment(MapToNamedTags):
         Passed to super.
     tags :
         Which tag columns should be produced: any subset of ``['ents', 'subj', 'verb']``.
-    posNum :
+    pos_stats :
         Which parts of speec (POS) should be produced. ``True`` (default) means all.
     vec :
         If ``True`` produce spaCy document vectors, both raw and normalized.
         Or one of ``'vec'`` or ``'vec_normalized'``
-    returnDoc :
+    return_doc :
         Return the spaCy doc object per as ``{textcol_name}_doc``.
         This can be then used for further analysis.
     batch_size :
@@ -451,9 +449,9 @@ class SpacyEnrichment(MapToNamedTags):
         nlp: Union[str, Callable] = "en_core_web_sm",
         *args: List,
         tags: List[str] = ["ents", "subj", "verb"],
-        posNum: Union[bool, List[str]] = True,
+        pos_stats: Union[bool, List[str]] = True,
         vec: Union[bool, str] = False,
-        returnDoc: bool = False,
+        return_doc: bool = False,
         batch_size: int = 1000,
         n_threads: int = -1,
         **kwargs: Mapping,
@@ -461,14 +459,14 @@ class SpacyEnrichment(MapToNamedTags):
         super(SpacyEnrichment, self).__init__(
             *args,
             tags=tags,
-            ignoreUploadCols=["doc", "vec", "vec_normalized"],
+            ignore_upload_cols=["doc", "vec", "vec_normalized"],
             **kwargs,
         )
         self._nlp = spacy.load(nlp) if isinstance(nlp, str) else nlp
-        self._posNum = posNum
+        self._posNum = pos_stats
         self._batch_size = batch_size
         self._n_threads = n_threads
-        self._returnDoc = returnDoc
+        self._returnDoc = return_doc
         self._vec = vec
 
     def doprocess(self, x):
@@ -501,10 +499,10 @@ class SpacyEnrichment(MapToNamedTags):
             if "verb" in self._tags:
                 ret["verb"] = list(tok.lemma.loc[tok.pos == "VERB"])
 
-            posNum = tok.pos.value_counts()
-            posSel = tok.pos.unique() if self._posNum is True else self._posNum
-            for pos in posSel:
-                ret["num_" + pos] = posNum.loc[pos]
+            pos_num = tok.pos.value_counts()
+            pos_sel = tok.pos.unique() if self._posNum is True else self._posNum
+            for pos in pos_sel:
+                ret["num_" + pos] = pos_num.loc[pos]
             if self._vec:
                 if self._vec is True or self._vec == "unnormalized":
                     ret["vec"] = doc.vector

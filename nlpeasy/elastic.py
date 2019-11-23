@@ -8,20 +8,20 @@ import elasticsearch
 from . import kibana
 from . import docker
 
-from .util import chunker, print_or_display, rmNanFromDict
+from .util import chunker, print_or_display, rm_nan_from_dict
 
 
 def connect_elastic(
-    dockerPrefix: str = "nlp",
-    startOnDocker: bool = True,
+    docker_prefix: str = "nlp",
+    start_on_docker: bool = True,
     host: str = "localhost",
-    elasticPort: Optional[int] = None,
-    kibanaPort: Optional[int] = None,
-    kibanaHost: str = None,
-    elkVersion: str = "7.1.1",
-    mountVolumePrefix: Optional[str] = None,
+    elastic_port: Optional[int] = None,
+    kibana_port: Optional[int] = None,
+    kibana_host: str = None,
+    elk_version: str = "7.1.1",
+    mount_volume_prefix: Optional[str] = None,
     verbose: bool = True,
-    failOnNotAvailable: bool = False,
+    raise_error: bool = False,
     **kwargs,
 ) -> "ElasticStack":
     """Connect to running Elasticsearch and Kibana servers or start one on Docker.
@@ -33,31 +33,31 @@ def connect_elastic(
 
     Parameters
     ----------
-    dockerPrefix :
+    docker_prefix :
         Docker containers for Elasticsearch and Kibana, and the docker network will be prefixed
         with this + '_' as is customary e.g. in docker-compose
-    startOnDocker :
+    start_on_docker :
         If there is no reachable Elasticsearch server, should one be started on Docker (default: True)
     host :
         The host to try to connect to (default: 'localhost')
-    elasticPort :
+    elastic_port :
         The port on which try to connect to or start Elasticsearch on if not yet started.
         If ``None`` (default) then docker will find a port and the returned ELK will be using that.
-    kibanaPort :
+    kibana_port :
         The port on which try to connect to or start Kibana on if not yet started.
         If ``None`` (default) then docker will find a port and the returned ELK will be using that.
-    kibanaHost :
+    kibana_host :
         The host to try to connect to for Kibana.
         If ``None`` (default) the same as ``host``.
-    elkVersion :
+    elk_version :
         The version of the Elastic Stack to download if starting on Docker.
-    mountVolumePrefix :
+    mount_volume_prefix :
         If a docker container will be started this specifies where in the filesystem of the host
         the data should be saved. If ``None`` (default) data is not saved and will not survive
         restarts of the container.
     verbose :
         Should information be printed out.
-    failOnNotAvailable :
+    raise_error :
         Should there be an error raised.
     kwargs :
         Passed to :meth:`~nlpeasy.docker.start_elastic_on_docker`
@@ -67,51 +67,55 @@ def connect_elastic(
     ElasticStack
         The elastic stack found.
     """
-    kibanaHost = kibanaHost or host
-    elasticPort = elasticPort or 9200
-    kibanaPort = kibanaPort or 5601
+    kibana_host = kibana_host or host
+    elastic_port = elastic_port or 9200
+    kibana_port = kibana_port or 5601
     log = print_or_display if verbose else lambda x: None
     elk = ElasticStack(
-        host=host, elasticPort=elasticPort, kibanaPort=kibanaPort, kibanaHost=kibanaHost
+        host=host,
+        elastic_port=elastic_port,
+        kibana_port=kibana_port,
+        kibana_host=kibana_host,
     )
     if elk.alive():
         log(f"Elasticsearch already running")
         # TODO warn if version mismatches elkVersion param
         log(elk)
         return elk
-    if dockerPrefix is None:
-        if failOnNotAvailable:
+    if docker_prefix is None:
+        if raise_error:
             raise RuntimeError(
-                f"No running elasticsearch found on {host}:{elasticPort}."
+                f"No running elasticsearch found on {host}:{elastic_port}."
             )
         else:
-            log(f"No running elasticsearch found on {host}:{elasticPort}.")
+            log(f"No running elasticsearch found on {host}:{elastic_port}.")
             return None
 
     # Let's pass it on to docker:
     log(
-        f"No elasticsearch on {host}:{elasticPort} found, trying connect to docker container with prefix {dockerPrefix}"
+        f"No elasticsearch on {host}:{elastic_port} found, "
+        f"trying connect to docker container with prefix {docker_prefix}"
     )
-    elk = docker.elasticStackFromDocker(
-        containerPrefix=dockerPrefix, setAsDefaultStack=False
+    elk = docker.elastic_stack_from_docker(
+        container_prefix=docker_prefix, set_as_default_elk=False
     )
     if elk is None or not elk.alive():
-        if startOnDocker:
-            log(f"No docker container with prefix {dockerPrefix}; starting one")
+        if start_on_docker:
+            log(f"No docker container with prefix {docker_prefix}; starting one")
             assert all(
                 i not in kwargs for i in ["mountVolumePrefix", "version", "prefix"]
             )
             elk = docker.start_elastic_on_docker(
-                prefix=dockerPrefix,
-                elkVersion=elkVersion,
-                mountVolumePrefix=mountVolumePrefix,
+                prefix=docker_prefix,
+                elk_version=elk_version,
+                mount_volume_prefix=mount_volume_prefix,
                 **kwargs,
             )
         else:
             msg = (
-                f"No running elasticsearch found on docker with prefix {dockerPrefix}."
+                f"No running elasticsearch found on docker with prefix {docker_prefix}."
             )
-            if failOnNotAvailable:
+            if raise_error:
                 raise RuntimeError(msg)
             else:
                 log(msg)
@@ -124,17 +128,17 @@ class ElasticStack(object):
     def __init__(
         self,
         host="localhost",
-        elasticPort=9200,
-        kibanaPort=5601,
+        elastic_port=9200,
+        kibana_port=5601,
         protocol="http",
-        kibanaHost=None,
-        kibanaProtocol=None,
+        kibana_host=None,
+        kibana_protocol=None,
         verify_certs=True,
-        setAsDefaultStack=True,
+        set_as_default_stack=True,
         **kwargs,
     ):
         self._host = host
-        self._elasticPort = elasticPort
+        self._elasticPort = elastic_port
         self._protocol = protocol
         self._verify_certs = verify_certs
 
@@ -143,14 +147,14 @@ class ElasticStack(object):
         self._elasticKwargs = kwargs
 
         self.kibana = kibana.Kibana(
-            host=self._host if kibanaHost is None else kibanaHost,
-            port=kibanaPort,
-            protocol=self._protocol if kibanaProtocol is None else kibanaProtocol,
+            host=self._host if kibana_host is None else kibana_host,
+            port=kibana_port,
+            protocol=self._protocol if kibana_protocol is None else kibana_protocol,
             verify_certs=self._verify_certs,
         )
 
-        if setAsDefaultStack:
-            setDefaultStack(self)
+        if set_as_default_stack:
+            set_default_elk(self)
 
     def alive(self, verbose=True):
         import logging
@@ -172,7 +176,7 @@ class ElasticStack(object):
         urllib_logger.setLevel(orig_level)
         return result
 
-    def waitFor(
+    def wait_for(
         self,
         timeout: float = 10,
         interval: float = 0.5,
@@ -216,7 +220,7 @@ class ElasticStack(object):
             )
         return self._es
 
-    def getAnalysis(self, lang="english", synonyms=None):
+    def get_analysis(self, lang="english", synonyms=None):
         filter_names = []
         if lang == "english":
             filter_names.append("english_possessive_stemmer")
@@ -243,32 +247,31 @@ class ElasticStack(object):
         return filters, analyzer
 
     # TODO languages, synonyms,
-    def createIndex(
+    def create_index(
         self,
         index="texts",
         doctype="_doc",
         create=True,
-        textCols=[],
-        tagCols=[],
-        geoPointCols=[],
+        text_cols=[],
+        tag_cols=[],
+        geopoint_cols=[],
         synonyms=[],
-        dateCol=None,
         lang="english",
-        deleteOld=True,
+        delete_old=True,
         verbose=False,
     ):
         # assert lang == 'english'
         properties = {}
-        for k in textCols:
+        for k in text_cols:
             # TODO Make sure that the analyzer is created as f"{lang}_syn":
             properties[k] = {
                 "type": "text",
                 "fielddata": True,
                 "analyzer": f"{lang}_syn",
             }
-        for k in tagCols:
+        for k in tag_cols:
             properties[k] = {"type": "keyword"}
-        for k in geoPointCols:
+        for k in geopoint_cols:
             properties[k] = {"type": "geo_point"}
         properties["suggest"] = {"type": "completion"}
         mapping = {
@@ -278,7 +281,7 @@ class ElasticStack(object):
         if self.es.info()["version"]["number"] < "7":
             mapping = {doctype: mapping}
         if create:
-            filters, analyzer = self.getAnalysis(lang, synonyms)
+            filters, analyzer = self.get_analysis(lang, synonyms)
             body = {
                 "settings": {
                     "analysis": {
@@ -309,7 +312,7 @@ class ElasticStack(object):
             }
             if verbose:
                 print(body)
-            if deleteOld:
+            if delete_old:
                 try:
                     self.es.indices.delete(index)
                 except:  # noqa: E722
@@ -319,36 +322,35 @@ class ElasticStack(object):
         else:
             self.es.indices.put_mapping(index=index, doc_type=doctype, body=mapping)
 
-    def loadDocs(
+    def load_docs(
         self,
         index,
         texts,
         doctype="_doc",
-        dateCol=None,
-        deleteOld=False,
+        delete_old=False,
         chunksize=1000,
-        idCol=None,
-        suggestCol=None,
-        showProgbar=True,
+        id_col=None,
+        suggest_col=None,
+        progbar=True,
     ):
-        if idCol is None:
-            idCol = texts.index
-        if deleteOld:
+        if id_col is None:
+            id_col = texts.index
+        if delete_old:
             try:
                 self.es.indices.delete(index)
             except:  # noqa: E722
                 pass
         # createIndex(index=index, create=deleteOld)
 
-        for ic, cdf in enumerate(chunker(texts, chunksize, progbar=showProgbar)):
+        for ic, cdf in enumerate(chunker(texts, chunksize, progbar=progbar)):
             docs = cdf.to_dict(orient="records")
             for ii, doc in enumerate(docs):
                 i = ic * chunksize + ii
-                doc = rmNanFromDict(doc)
-                if suggestCol and suggestCol in doc:
-                    doc["suggest"] = doc[suggestCol]
+                doc = rm_nan_from_dict(doc)
+                if suggest_col and suggest_col in doc:
+                    doc["suggest"] = doc[suggest_col]
                 try:
-                    self.es.index(index=index, doc_type=doctype, id=idCol[i], body=doc)
+                    self.es.index(index=index, doc_type=doctype, id=id_col[i], body=doc)
                 except elasticsearch.ElasticsearchException as ex:
                     print(ex)
                     print(doc)
@@ -379,13 +381,13 @@ class ElasticStack(object):
 __DEFAULT_STACK = None
 
 
-def defaultStack():
+def default_stack():
     global __DEFAULT_STACK
     if __DEFAULT_STACK is None:
         __DEFAULT_STACK = ElasticStack()
     return __DEFAULT_STACK
 
 
-def setDefaultStack(es):
+def set_default_elk(es):
     global __DEFAULT_STACK
     __DEFAULT_STACK = es

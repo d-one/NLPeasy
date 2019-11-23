@@ -20,8 +20,8 @@ def parse_html(
     select={},
     limit=None,
     autounbox=True,
-    addMetaNames=True,
-    metaNamesPrefix="meta_",
+    add_meta_names=True,
+    meta_names_prefix="meta_",
     tags=["h1", "h2", "h3", "b", "em"],
 ):
     """
@@ -47,10 +47,10 @@ def parse_html(
             x = soup.select(v)
             cols[k] = [_.get_text() for _ in x]
         rows.append(cols)
-        if addMetaNames:
+        if add_meta_names:
             for meta in soup.find_all("meta"):
                 if "name" in meta.attrs and "content" in meta.attrs:
-                    n = metaNamesPrefix + meta.attrs["name"]
+                    n = meta_names_prefix + meta.attrs["name"]
                     if n not in cols:
                         cols[n] = []
                     cols[n].append(meta.attrs["content"])

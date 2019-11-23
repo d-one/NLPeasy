@@ -26,7 +26,7 @@ def chunker(seq, size, progbar=True):
         pbar: Progbar = Progbar(n)
         pbar.update(0)
     for pos in range(0, n, size):
-        yield seq[pos : pos + size]
+        yield seq[pos : pos + size]  # noqa: E203
         if progbar:
             pbar.update(min(pos + size, n))
 
@@ -117,7 +117,7 @@ class Progbar(object):
 
         now = time.time()
         # info = ' - %.0fs' % (now - self._start)
-        info = " - %s" % (formatTime(now - self._start))
+        info = " - %s" % (format_time(now - self._start))
         if self.verbose == 1:
             if (
                 now - self._last_update < self.interval
@@ -162,7 +162,7 @@ class Progbar(object):
                 time_per_unit = 0
             if self.target is not None and current < self.target:
                 eta = time_per_unit * (self.target - current)
-                eta_format = formatTime(eta)
+                eta_format = format_time(eta)
 
                 info = " - ETA: %s" % eta_format
             else:
@@ -214,7 +214,7 @@ class Progbar(object):
         self.update(self._seen_so_far + n, values)
 
 
-def formatTime(eta):
+def format_time(eta):
     if eta > 3600:
         eta_format = "%d:%02d:%02d" % (eta // 3600, (eta % 3600) // 60, eta % 60)
     elif eta > 60:
@@ -224,9 +224,9 @@ def formatTime(eta):
     return eta_format
 
 
-def formatTime_ns(eta):
+def format_time_ns(eta):
     if eta > 10e9:
-        eta_format = formatTime(eta // 1e9)
+        eta_format = format_time(eta // 1e9)
     elif eta > 1e9:
         eta_format = "%.1fs" % (eta / 1e9)
     elif eta > 10e6:
@@ -269,8 +269,8 @@ class Tictoc(object):
         name, start = self.stack.pop()
         dur = stop - start
         if self.output == "print":
-            timeString = formatTime_ns(dur)
-            print(f"{name}: {timeString}")
+            time_string = format_time_ns(dur)
+            print(f"{name}: {time_string}")
         if self._summarizer is not False:
             self._summarizer[name] += dur
 
@@ -289,17 +289,17 @@ class Tictoc(object):
         if len(self.stack):
             print(f"Warning: stack is not empty but has {len(self.stack)} items")
         for k, v in self._summarizer.items():
-            print(f"{k}: {formatTime_ns(v)}")
+            print(f"{k}: {format_time_ns(v)}")
 
 
-def rmNanFromDict(x):
+def rm_nan_from_dict(x):
     import pandas as pd
 
     if isinstance(x, dict):
         y = {}
         for k, v in x.items():
             if isinstance(v, list) or isinstance(v, dict):
-                y[k] = rmNanFromDict(v)
+                y[k] = rm_nan_from_dict(v)
             elif not pd.isna(v):
                 y[k] = v
         return y
@@ -307,7 +307,7 @@ def rmNanFromDict(x):
         y = []
         for v in x:
             if isinstance(v, list) or isinstance(v, dict):
-                y.append(rmNanFromDict(v))
+                y.append(rm_nan_from_dict(v))
             elif not pd.isna(v):
                 y.append(v)
         return y

@@ -22,7 +22,7 @@ class Kibana(object):
         self._defaultSearchUID = None
         self._kibana_version = None
 
-    def kibanaUrl(self, path=""):
+    def kibana_url(self, path=""):
         # TODO maybe URLEncode path?
         if path and path[0] != "/":
             # TODO Warn about missing initial '/'?
@@ -30,7 +30,7 @@ class Kibana(object):
         return f"{self._protocol}://{self._host}:{self._port}{path}"
 
     def alive(self, verbose=True):
-        resp = requests.head(self.kibanaUrl("api/status"))
+        resp = requests.head(self.kibana_url("api/status"))
         return resp.status_code == 200
 
     def show_kibana(
@@ -55,7 +55,7 @@ class Kibana(object):
             how = "jupyter" if util.IS_JUPYTER else "webbrowser"
             # TODO can we figure out "non-interactive" to put how='print' then?
         how = how if isinstance(how, list) else [how]
-        url = self.kibanaUrl(*args, **kwargs)
+        url = self.kibana_url(*args, **kwargs)
         if "print" in how:
             print(f"Open: {url}")
         if "webbrowser" in how:
@@ -68,27 +68,27 @@ class Kibana(object):
             return HTML(self._repr_html_())
 
     def __repr__(self):
-        return f"Kibana on {self.kibanaUrl()}"
+        return f"Kibana on {self.kibana_url()}"
 
     def _repr_html_(self):
-        return f"Kibana on <a href='{self.kibanaUrl()}'>{self.kibanaUrl()}</a>"
+        return f"Kibana on <a href='{self.kibana_url()}'>{self.kibana_url()}</a>"
 
-    def getKibanaSavedObjects(self, type="index-pattern", search=None, fields=None):
+    def get_kibana_saved_objects(self, type="index-pattern", search=None, fields=None):
         type = "&type=" + type if type else ""
         search = "&search=" + search if search else ""
         fields = "&fields=" + fields if fields else ""
         resp = requests.get(
-            self.kibanaUrl(f"/api/saved_objects/_find?{type}{search}{fields}")
+            self.kibana_url(f"/api/saved_objects/_find?{type}{search}{fields}")
         )
         resp.raise_for_status()
         result = resp.json()["saved_objects"]
         return result
 
-    def postKibanaSavedObject(self, type, attributes, id=None):
+    def post_kibana_saved_object(self, type, attributes, id=None):
         body = {"attributes": attributes}
         id = "/" + id if id else ""
         result = requests.post(
-            self.kibanaUrl(f"/api/saved_objects/{type}{id}?overwrite=true"),
+            self.kibana_url(f"/api/saved_objects/{type}{id}?overwrite=true"),
             headers={"kbn-xsrf": "true"},
             json=body,
         )
@@ -96,12 +96,12 @@ class Kibana(object):
         # return result.json()
         return result.json()["id"], result.json()
 
-    def updateKibanaSavedObject(self, type, attributes, id):
+    def update_kibana_saved_object(self, type, attributes, id):
         body = {"attributes": attributes}
         assert isinstance(id, str) and len(id) > 0
         id = "/" + id
         result = requests.put(
-            self.kibanaUrl(f"/api/saved_objects/{type}{id}"),
+            self.kibana_url(f"/api/saved_objects/{type}{id}"),
             headers={"kbn-xsrf": "true"},
             json=body,
         )
@@ -109,14 +109,14 @@ class Kibana(object):
         # return result.json()
         return result.json()["id"], result.json()
 
-    def deleteKibanaSavedObject(self, type, uid):
-        u = self.kibanaUrl(f"/api/saved_objects/{type}/{uid}")
+    def delete_kibana_saved_object(self, type, uid):
+        u = self.kibana_url(f"/api/saved_objects/{type}/{uid}")
         resp = requests.delete(u, headers={"kbn-xsrf": "true"})
         resp.raise_for_status
         print(resp.json())
         return resp.json()
 
-    def truncateKibanaSavedObjects(
+    def truncate_kibana_saved_objects(
         self,
         types=["dashboard", "visualization", "search", "index-pattern"],
         search=None,
@@ -124,16 +124,18 @@ class Kibana(object):
         for t in types:
             if search is not None and t == "index-pattern_________":
                 continue
-            objs = self.getKibanaSavedObjects(type=t, fields="name", search=search)
+            objs = self.get_kibana_saved_objects(type=t, fields="name", search=search)
             print(f"deleting {len(objs)} objects of type {t}...")
             for i in objs:
                 # print(i['id'])
-                self.deleteKibanaSavedObject(t, i["id"])
+                self.delete_kibana_saved_object(t, i["id"])
         print("finished deleting")
 
-    def getKibanaConfig(self, name=None, onlyLastSetValue=True, defaultValue=None):
-        assert onlyLastSetValue
-        config = self.getKibanaSavedObjects("config")
+    def get_kibana_config(
+        self, name=None, only_last_set_value=True, default_value=None
+    ):
+        assert only_last_set_value
+        config = self.get_kibana_saved_objects("config")
         # TODO need to implement for onlyLastSetValue=False as well or warn if multiple values?
         result = dict()
         for i in config:
@@ -143,11 +145,11 @@ class Kibana(object):
             if name in result:
                 return result[name]
             else:
-                return defaultValue
+                return default_value
         return result
 
-    def getSavedObjectIfExists(self, type, title, ifexists):
-        for i in self.getKibanaSavedObjects(type, title, "title"):
+    def get_saved_object_if_exists(self, type, title, ifexists):
+        for i in self.get_kibana_saved_objects(type, title, "title"):
             if i["attributes"]["title"] == title:
                 # it exists already
                 if ifexists == "return_existing":
@@ -156,62 +158,62 @@ class Kibana(object):
                 if ifexists == "error":
                     raise ValueError(f"{type} {title} already exists!")
                 if ifexists == "overwrite":
-                    self.deleteKibanaSavedObject(type, i["id"])
+                    self.delete_kibana_saved_object(type, i["id"])
                 if ifexists != "add":
                     raise ValueError(f"ifexists={ifexists} not understood!!")
         return False
 
-    def setKibanaConfig(self, name, value, addToList=False, id=None):
-        assert not addToList
+    def set_kibana_config(self, name, value, add_to_list=False, id=None):
+        assert not add_to_list
         if id is None:
             id = self.kibana_version()
         # Workaround? Get Saved object for settings first, so it is instantiated:
-        existing = self.getKibanaConfig(name=id)
+        existing = self.get_kibana_config(name=id)
         attributes = {name: value}
         if existing is not None:
-            res = self.updateKibanaSavedObject("config", attributes, id=id)
+            res = self.update_kibana_saved_object("config", attributes, id=id)
         else:
-            res = self.postKibanaSavedObject("config", attributes, id=id)
+            res = self.post_kibana_saved_object("config", attributes, id=id)
         return res
 
-    def addKibanaIndexPattern(
+    def add_kibana_index_pattern(
         self,
-        indexPattern,
-        timeField=None,
-        setDefaultIndexPattern=True,
+        index_pattern,
+        time_field=None,
+        set_default_index_pattern=True,
         ifexists="return_existing",
     ):
-        uid = self.getSavedObjectIfExists("index-pattern", indexPattern, ifexists)
+        uid = self.get_saved_object_if_exists("index-pattern", index_pattern, ifexists)
         if uid:
             return uid, None
         attributes = {
-            "title": indexPattern,
+            "title": index_pattern,
         }
-        if timeField is not None:
-            attributes["timeFieldName"] = timeField
-        uid, result = self.postKibanaSavedObject("index-pattern", attributes)
-        if setDefaultIndexPattern:
+        if time_field is not None:
+            attributes["timeFieldName"] = time_field
+        uid, result = self.post_kibana_saved_object("index-pattern", attributes)
+        if set_default_index_pattern:
             self._defaultIndexPatternUID = uid
 
         return uid, result
 
-    def addKibanaSearch(
+    def add_kibana_search(
         self,
         title,
         columns,
         description=None,
         sort=None,
-        setDefaultSearch=True,
-        indexPatternUID=None,
+        set_default_search=True,
+        index_pattern_uid=None,
         ifexists="return_existing",
     ):
-        if indexPatternUID is None:
-            indexPatternUID = self._defaultIndexPatternUID
-        uid = self.getSavedObjectIfExists("search", title, ifexists)
+        if index_pattern_uid is None:
+            index_pattern_uid = self._defaultIndexPatternUID
+        uid = self.get_saved_object_if_exists("search", title, ifexists)
         if uid:
             return uid, None
-        searchSourceJSON = {
-            "index": indexPatternUID,
+        search_source_json = {
+            "index": index_pattern_uid,
             "highlightAll": True,
             # "version": True,
             "query": {"query": "", "language": "kuery"},
@@ -220,22 +222,24 @@ class Kibana(object):
         attributes = {
             "title": title,
             "columns": columns,
-            "kibanaSavedObjectMeta": {"searchSourceJSON": json.dumps(searchSourceJSON)},
+            "kibanaSavedObjectMeta": {
+                "searchSourceJSON": json.dumps(search_source_json)
+            },
         }
         if description is not None:
             attributes["description"] = description
         if sort is not None:
             attributes["sort"] = sort
-        uid, res = self.postKibanaSavedObject(type="search", attributes=attributes)
-        if setDefaultSearch:
+        uid, res = self.post_kibana_saved_object(type="search", attributes=attributes)
+        if set_default_search:
             self._defaultSearchUID = uid
         return uid, res
 
-    def addVisualization(
-        self, title, viz, indexPatternUID=None, ifexists="return_existing"
+    def add_visualization(
+        self, title, viz, index_pattern_uid=None, ifexists="return_existing"
     ):
-        if indexPatternUID is None:
-            indexPatternUID = self._defaultIndexPatternUID
+        if index_pattern_uid is None:
+            index_pattern_uid = self._defaultIndexPatternUID
         # visState = {
         #     'aggs':[
         #         {'id': '1', 'schema':'metric', 'type': 'count'},
@@ -251,64 +255,64 @@ class Kibana(object):
         #     'type': visType,
         # }
         assert isinstance(viz, Visualization)
-        uid = self.getSavedObjectIfExists("visualization", title, ifexists)
+        uid = self.get_saved_object_if_exists("visualization", title, ifexists)
         if uid:
             return uid, None
-        visState = viz.visState(title)
-        searchSourceJSON = {
-            "index": indexPatternUID,
+        vis_state = viz.vis_state(title)
+        search_source_json = {
+            "index": index_pattern_uid,
             "filter": [],
             "query": {"language": "kuery", "query": ""},
         }
-        uid, res = self.postKibanaSavedObject(
+        uid, res = self.post_kibana_saved_object(
             "visualization",
             attributes={
                 "title": title,
-                "visState": json.dumps(visState),
+                "visState": json.dumps(vis_state),
                 "uiStateJSON": '{"vis":{"legendOpen":false}}',
                 "kibanaSavedObjectMeta": {
-                    "searchSourceJSON": json.dumps(searchSourceJSON)
+                    "searchSourceJSON": json.dumps(search_source_json)
                 },
             },
         )
         return uid, res
 
-    def addDashboard(
+    def add_dashboard(
         self,
         title,
-        searchUID,
-        visUIDs,
-        timeFrom=None,
-        timeTo=None,
-        nVisCols=3,
-        visW=16,
-        visH=16,
-        searchW=48,
-        searchH=16,
+        search_uid,
+        vis_uids,
+        time_from=None,
+        time_to=None,
+        n_vis_cols=3,
+        vis_w=16,
+        vis_h=16,
+        search_w=48,
+        search_h=16,
         ifexists="return_existing",
     ):
-        uid = self.getSavedObjectIfExists("dashboard", title, ifexists)
+        uid = self.get_saved_object_if_exists("dashboard", title, ifexists)
         if uid:
             return uid, None
         panels = [
             {
                 "panelIndex": "1",
-                "gridData": {"x": 0, "y": 0, "w": searchW, "h": searchH, "i": "1"},
+                "gridData": {"x": 0, "y": 0, "w": search_w, "h": search_h, "i": "1"},
                 "version": "6.3.2",
                 "type": "search",
-                "id": searchUID,
+                "id": search_uid,
                 "embeddableConfig": {},
             }
         ]
-        for i, v in enumerate(visUIDs):
-            ix, iy = i % nVisCols, i // nVisCols
-            x, y = ix * visW, searchH + iy * visH
+        for i, v in enumerate(vis_uids):
+            ix, iy = i % n_vis_cols, i // n_vis_cols
+            x, y = ix * vis_w, search_h + iy * vis_h
             # print(ix,iy, x,y)
-            iStr = str(i + 2)
+            i_str = str(i + 2)
             panels.append(
                 {
-                    "panelIndex": iStr,
-                    "gridData": {"x": x, "y": y, "w": visW, "h": visH, "i": iStr},
+                    "panelIndex": i_str,
+                    "gridData": {"x": x, "y": y, "w": vis_w, "h": vis_h, "i": i_str},
                     "version": "6.3.2",
                     "type": "visualization",
                     "id": v,
@@ -324,112 +328,119 @@ class Kibana(object):
             #      'version': 1,
             #      'refreshInterval': {'display': 'Off', 'pause': False, 'value': 0},
             "kibanaSavedObjectMeta": {
-                "searchSourceJSON": '{"query":{"query":"","language":"kuery"},"filter":[],"highlightAll":true,"version":true}'
+                "searchSourceJSON": '{"query":{"query":"","language":"kuery"},"filter":[],"highlightAll":true,"version":true}'  # noqa: E501
             },
         }
-        if timeFrom is not None and timeTo is not None:
+        if time_from is not None and time_to is not None:
             attributes["timeRestore"] = True
-            attributes["timeTo"] = str(timeTo)
-            attributes["timeFrom"] = str(timeFrom)
-        uid, res = self.postKibanaSavedObject("dashboard", attributes)
+            attributes["timeTo"] = str(time_to)
+            attributes["timeFrom"] = str(time_from)
+        uid, res = self.post_kibana_saved_object("dashboard", attributes)
         return uid, res
 
     def setup_kibana(
         self,
         index,
-        timeField=None,
-        searchCols=[],
-        visCols=None,
+        time_field=None,
+        search_cols=[],
+        vis_cols=None,
         dashboard=True,
-        timeFrom=None,
-        timeTo=None,
+        time_from=None,
+        time_to=None,
         sets=True,
         ifexists="return_existing",
     ):
         print(f"{index}: adding index-pattern")
-        ipUID, _ipRes = self.addKibanaIndexPattern(index, timeField, ifexists=ifexists)
-        if self.getKibanaConfig("defaultIndex") is None:
+        ip_uid, _ip_res = self.add_kibana_index_pattern(
+            index, time_field, ifexists=ifexists
+        )
+        if self.get_kibana_config("defaultIndex") is None:
             # BUG the following is not really setting the defaultIndex as the Kibana UI see it...
             print(f"{index}: setting default index-pattern")
-            self.setKibanaConfig("defaultIndex", ipUID)
+            self.set_kibana_config("defaultIndex", ip_uid)
         print(f"{index}: adding search")
-        seUID, _seRes = self.addKibanaSearch(
-            index + "-search", searchCols, ifexists=ifexists
+        se_uid, _se_res = self.add_kibana_search(
+            index + "-search", search_cols, ifexists=ifexists
         )
-        visUIDs = []
-        for i in visCols:
+        vis_uids = []
+        for i in vis_cols:
             if isinstance(i, str):
                 i = HorizontalBar(i)
             print(f"{index}: adding visualisation for {i.field}")
-            uid, _res = self.addVisualization(
+            uid, _res = self.add_visualization(
                 f"[{index}] {i.field}", i, ifexists=ifexists
             )
-            visUIDs.append(uid)
+            vis_uids.append(uid)
         if dashboard:
             print(f"{index}: adding dashboard")
-            daUID, _daRes = self.addDashboard(
+            da_uid, _da_res = self.add_dashboard(
                 f"[{index}] Dashboard",
-                seUID,
-                visUIDs,
-                timeFrom=timeFrom,
-                timeTo=timeTo,
+                se_uid,
+                vis_uids,
+                time_from=time_from,
+                time_to=time_to,
                 ifexists=ifexists,
             )
         if sets:
             print(f"{index}: setting time defaults")
-            self.set_kibana_timeDefaults(timeFrom, timeTo)
+            self.set_kibana_time_defaults(time_from, time_to)
         return {
-            "index-pattern": ipUID,
-            "search": seUID,
-            "visualization": visUIDs,
-            "dashboard": daUID,
+            "index-pattern": ip_uid,
+            "search": se_uid,
+            "visualization": vis_uids,
+            "dashboard": da_uid,
         }
 
-    def set_kibana_timeDefaults(self, timeFrom="now-15m", timeTo="now", mode="quick"):
+    def set_kibana_time_defaults(
+        self, time_from="now-15m", time_to="now", mode="quick"
+    ):
         """
-        For accepted formats see https://www.elastic.co/guide/en/elasticsearch/reference/6.7/common-options.html#date-math
+        For accepted formats
+        see https://www.elastic.co/guide/en/elasticsearch/reference/6.7/common-options.html#date-math
         """
         # more configs on https://www.elastic.co/guide/en/kibana/current/advanced-options.html
         # maybe also set the timepicker:quickRanges key to a list of interesting time ranges.
 
         # value is a JSON, but as string.
         # btw we need to escape the outer {} in the f'...' string
-        timeFrom = timeFrom or "now-15m"
-        timeTo = timeTo or "now"
-        value = {"from": str(timeFrom), "to": str(timeTo), "mode": "{mode}"}
+        time_from = time_from or "now-15m"
+        time_to = time_to or "now"
+        value = {"from": str(time_from), "to": str(time_to), "mode": "{mode}"}
         configname = (
             "timepicker:timeDefaults"
             if self.kibana_version() >= "7"
             else "timepickerts"
         )
-        uid, res = self.setKibanaConfig(configname, json.dumps(value))
+        uid, res = self.set_kibana_config(configname, json.dumps(value))
         return uid, res
 
-    def set_kibana_timeQuickRange(self, display, timeFrom, timeTo, section=3, id=None):
+    def set_kibana_time_quick_range(
+        self, display, time_from, time_to, section=3, id=None
+    ):
         """
         For accepted formats see
         https://www.elastic.co/guide/en/elasticsearch/reference/6.7/common-options.html#date-math
         """
         if id is None:
             id = self.kibana_version()
-        timeFrom = timeFrom or "now-15m"
-        timeTo = timeTo or "now"
+        time_from = time_from or "now-15m"
+        time_to = time_to or "now"
         value = [
             {
-                "from": str(timeFrom),
-                "to": str(timeTo),
+                "from": str(time_from),
+                "to": str(time_to),
                 "display": display,
                 "section": section,
             }
         ]
-        uid, res = self.setKibanaConfig(
+        uid, res = self.set_kibana_config(
             "timepicker:quickRanges", json.dumps(value), id=id
         )
         return uid, res
 
     def kibana_version(self):
         if not self._kibana_version:
-            result = requests.get(self.kibanaUrl("api/status"))
+            result = requests.get(self.kibana_url("api/status"))
             result.raise_for_status()
             self._kibana_version = result.json()["version"]["number"]
         return self._kibana_version
@@ -439,7 +450,7 @@ class Kibana(object):
         # https://github.com/tensorflow/tensorboard/blob/d9092143511cb04e4bfc904820305f1be45c67b3/tensorboard/notebook.py
         from IPython.display import IFrame
 
-        url = self.kibanaUrl()
+        url = self.kibana_url()
         iframe = IFrame(src=url, height=500, width="100%")
         return iframe
 
@@ -450,14 +461,17 @@ class Visualization(object):
         self.agg = agg
         self.visType = None
 
-    def visState(self, title):
-        visState = {
-            "aggs": [{"id": "1", "schema": "metric", "type": self.agg}, self.agg2(),],
+    def vis_state(self, title):
+        vis_state = {
+            "aggs": [
+                {"id": "1", "schema": "metric", "type": self.agg},
+                self.agg2(),
+            ],  # noqa: E231
             "params": {"type": self.visType},
             "title": title,
             "type": self.visType,
         }
-        return visState
+        return vis_state
 
     def agg2(self):
         raise NotImplementedError()

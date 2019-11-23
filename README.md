@@ -43,7 +43,7 @@ import nlpeasy as ne
 from sklearn.datasets import fetch_20newsgroups
 
 # connect to running elastic or else start an Open Source stack on your docker
-elk = ne.connect_elastic(dockerPrefix='nlp', elkVersion='7.4.0', mountVolumePrefix=None)
+elk = ne.connect_elastic(docker_prefix='nlp', elk_version='7.4.0', mount_volume_prefix=None)
 # If it is started on docker it will on the first time pull the images (1.3GB)!
 # Setting mountVolumePrefix="./elastic-data/" would keep the data of elastic in your
 # filesystems and then the data survives container restarts
@@ -54,13 +54,13 @@ news_groups = [news_raw['target_names'][i] for i in news_raw['target']]
 news = pd.DataFrame({'newsgroup': news_groups, 'message': news_raw['data']})
 
 # setup NLPeasy pipeline with name for the elastic index and set the text column
-pipeline = ne.Pipeline(index='news', textCols=['message'], tagCols=['newsgroup'], elk=elk)
+pipeline = ne.Pipeline(index='news', text_cols=['message'], tag_cols=['newsgroup'], elk=elk)
 
 pipeline += ne.VaderSentiment('message', 'sentiment')
 pipeline += ne.SpacyEnrichment(nlp='en_core_web_md', cols=['message'], vec=True)
 
 # do the pipeline - just for first 100, the whole thing would take 10 minutes
-news_enriched = pipeline.process(news.head(10000000), writeElastic=True)
+news_enriched = pipeline.process(news.head(10000000), write_elastic=True)
 
 # Create Kibana Dashboard of all the columns
 pipeline.create_kibana_dashboard()
