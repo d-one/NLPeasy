@@ -73,6 +73,6 @@ setup(
     test_suite="tests",
     tests_require=test_requirements,
     url="https://github.com/d-one/nlpeasy",
-    version="0.6.2",
+    version="version='0.7.0'",
     zip_safe=False,
 )
