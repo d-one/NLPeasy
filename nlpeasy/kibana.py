@@ -19,6 +19,7 @@ class Kibana(object):
         self._verify_certs = verify_certs
         self._defaultIndexPatternUID = None
         self._defaultSearchUID = None
+        self._kibana_version = None
     def kibanaUrl(self, path=""):
         # TODO maybe URLEncode path?
         if path and path[0] != '/':
@@ -80,6 +81,14 @@ class Kibana(object):
         result.raise_for_status()
         # return result.json()
         return result.json()['id'], result.json()
+    def updateKibanaSavedObject(self, type, attributes, id):
+        body = { "attributes": attributes }
+        assert isinstance(id, str) and len(id)>0
+        id = "/"+id
+        result = requests.put(self.kibanaUrl(f'/api/saved_objects/{type}{id}'), headers={"kbn-xsrf": "true"}, json=body)
+        result.raise_for_status()
+        # return result.json()
+        return result.json()['id'], result.json()
     def deleteKibanaSavedObject(self, type, uid):
         u = self.kibanaUrl(f'/api/saved_objects/{type}/{uid}')
         resp = requests.delete(u, headers={"kbn-xsrf": "true"})
@@ -128,10 +137,17 @@ class Kibana(object):
                     raise ValueError(f"ifexists={ifexists} not understood!!")
         return False
 
-    def addKibanaConfig(self, name, value, addToList=False, id=None):
+    def setKibanaConfig(self, name, value, addToList=False, id=None):
         assert not addToList
+        if id is None:
+            id = self.kibana_version()
+        # Workaround? Get Saved object for settings first, so it is instantiated:
+        existing = self.getKibanaConfig(name=id)
         attributes = { name: value }
-        res = self.postKibanaSavedObject('config', attributes, id=id)
+        if existing is not None:
+            res = self.updateKibanaSavedObject('config', attributes, id=id)
+        else:
+            res = self.postKibanaSavedObject('config', attributes, id=id)
         return res
     def addKibanaIndexPattern(self, indexPattern, timeField=None, setDefaultIndexPattern=True, ifexists='return_existing'):
         uid = self.getSavedObjectIfExists('index-pattern', indexPattern, ifexists)
@@ -156,7 +172,7 @@ class Kibana(object):
             return uid, None
         searchSourceJSON = {
             "index": indexPatternUID,
-            # "highlightAll": True,
+            "highlightAll": True,
             # "version": True,
             "query":{"query":"","language":"kuery"},
             "filter":[]
@@ -253,7 +269,7 @@ class Kibana(object):
         if self.getKibanaConfig('defaultIndex') is None:
             # BUG the following is not really setting the defaultIndex as the Kibana UI see it...
             print(f'{index}: setting default index-pattern')
-            self.addKibanaConfig('defaultIndex', ipUID)
+            self.setKibanaConfig('defaultIndex', ipUID)
         print(f'{index}: adding search')
         seUID, _seRes = self.addKibanaSearch(index+"-search", searchCols, ifexists=ifexists)
         visUIDs = []
@@ -283,21 +299,28 @@ class Kibana(object):
         timeFrom = timeFrom or 'now-15m'
         timeTo = timeTo or 'now'
         value = { "from": str(timeFrom), "to": str(timeTo), "mode": "{mode}" }
-        uid, res = self.addKibanaConfig("timepickerts", json.dumps(value))
+        configname = "timepicker:timeDefaults" if self.kibana_version() >= '7' else "timepickerts"
+        uid, res = self.setKibanaConfig(configname, json.dumps(value))
         return uid, res
     def set_kibana_timeQuickRange(self, display, timeFrom, timeTo, section=3, id=None):
         '''
         For accepted formats see https://www.elastic.co/guide/en/elasticsearch/reference/6.7/common-options.html#date-math
         '''
         if id is None:
-            result = requests.get(self.kibanaUrl('api/status'))
-            result.raise_for_status()
-            id = result.json()['version']['number']
+            id = self.kibana_version()
         timeFrom = timeFrom or 'now-15m'
         timeTo = timeTo or 'now'
         value = [{"from": str(timeFrom), "to": str(timeTo), "display": display, "section": section}]
-        uid, res = self.addKibanaConfig("timepicker:quickRanges", json.dumps(value), id=id)
+        uid, res = self.setKibanaConfig("timepicker:quickRanges", json.dumps(value), id=id)
         return uid, res
+
+    def kibana_version(self):
+        if not self._kibana_version:
+            result = requests.get(self.kibanaUrl('api/status'))
+            result.raise_for_status()
+            self._kibana_version = result.json()['version']['number']
+        return self._kibana_version
+
     def show_kibana_jupyter(self, height=500):
         # see e.g. https://github.com/tensorflow/tensorboard/blob/d9092143511cb04e4bfc904820305f1be45c67b3/tensorboard/notebook.py
         from IPython.display import IFrame
