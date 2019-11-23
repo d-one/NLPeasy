@@ -187,7 +187,7 @@ class Pipeline(object):
 
         self.tic('global','min_max_calc')
         # Need to keep track of ranges for kibana to have something ot work on
-        cols = self._numCols
+        cols = self._numCols.copy()
         if self._dateCol is not None:
             cols.append(self._dateCol)
         for i in cols:
