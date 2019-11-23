@@ -36,6 +36,8 @@ test_requirements = [
     "nbsphinx",
     "docstr-coverage",
     "flake8",
+    "black",
+    "pep8-naming",
     "scikit-learn",
 ]
 
