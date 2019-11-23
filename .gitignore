@@ -84,7 +84,7 @@ celerybeat-schedule
 .env
 
 # virtualenv
-.venv
+.venvs
 venv/
 ENV/
 
@@ -107,4 +107,7 @@ vecs/
 .idea/
 .vscode/
 wordvecs
-Untitled.ipynb
+Untitled*.ipynb
+elastic-data/
+hidden/
+TODO.md

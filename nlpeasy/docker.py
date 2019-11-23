@@ -32,9 +32,7 @@ def start_elastic_on_docker(prefix, errorIfExists=False,
         client.images.pull(el_im)
         client.images.pull(ki_im)
     network = f'{prefix}_network'
-    if not len(client.networks.list(names=[network])):
-        client.networks.create(network)
-
+    network_obj = get_network(network)
 
     el_name = prefix+"_elastic"
     el_ulimits = [dockerpy.types.Ulimit(name='memlock', soft=-1, hard=-1), dockerpy.types.Ulimit(name='nofile', soft=65536, hard=65536)]
@@ -77,9 +75,22 @@ def start_elastic_on_docker(prefix, errorIfExists=False,
 
     return elk
 
-def container_running(name, client=dockerpy.from_env(), raiseRuntimeError=None):
+def get_network(network, client=dockerpy.from_env(), create=True):
+    nets = [ n for n in client.networks.list(names=[network]) if n.name == network ]
+    if len(nets)==1:
+        return nets[0]
+    if create:
+        return client.networks.create(network)
+    else:
+        return None
+
+def get_container(name, client=dockerpy.from_env(), raiseRuntimeError=None):
     c = [ _ for _ in client.containers.list(filters={'name': name}) if _.name == name ]
-    if len(c) == 1 and c[0].status == 'running':
+    return c[0] if len(c) == 1 else None
+
+def container_running(name, client=dockerpy.from_env(), raiseRuntimeError=None):
+    c = get_container(name, client=client)
+    if c is not None and c.status == 'running':
         return True
     if raiseRuntimeError:
         msg = raiseRuntimeError if isinstance(raiseRuntimeError, str) else f'container {name} not running'
@@ -103,7 +114,11 @@ def stop_elastic_on_docker(containerPrefix):
     client = dockerpy.from_env()
     for c in client.containers.list(filters={'name': containerPrefix+'_'}):
         c.stop()
-    network = f'{containerPrefix}_network'
-    for n in client.networks.list(names=[network]):
+    n = get_network(f'{containerPrefix}_network', create=False)
+    if n:
+        n.reload()
+        for c in n.containers:
+            n.disconnect(c, force=True)
+            print(f'remove {c.name} from {n.name}')
         n.remove()
 

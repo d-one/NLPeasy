@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """Main module."""
-
+import numbers
 
 import pandas as pd
 import spacy
@@ -104,7 +104,10 @@ class Pipeline(object):
             interval = 0.1
             if i in self._min_max:
                 min, max = self._min_max[i]
-                interval = (max - min) / 100
+                if not isinstance(min, numbers.Number) and not isinstance(max, numbers.Number):
+                    interval = (max - min) / 100
+                else:
+                    print(f"Trying to do a histogram on str values: {min!r} - {max!r}")
             visCols.append(kibana.Histogram(i, interval))
         timeFrom, timeTo = None, None
         if self._dateCol in self._min_max:
