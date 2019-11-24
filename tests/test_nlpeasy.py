@@ -24,7 +24,6 @@ def elk():
     return elk
 
 
-# @pytest.mark.skip("Skipping: dev")
 def test_end_to_end(elk):
     """Sample pytest test function with the pytest fixture as an argument."""
     # read data as Pandas data frame
@@ -59,9 +58,9 @@ def test_end_to_end(elk):
     # elk.show_kibana()
 
 
-@pytest.mark.skipIf(
-    not Path("../data_raw/nips.pickle").exists(),
-    "Skipping: data not yet publicly available",
+@pytest.mark.skipif(
+    not Path("data_raw/nips.pickle").exists(),
+    reason="Skipping: data not yet publicly available",
 )
 def test_timerange(elk):
     # read data as Pandas data frame
