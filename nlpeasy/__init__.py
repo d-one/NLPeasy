@@ -4,7 +4,7 @@
 
 __author__ = """Philipp Thomann"""
 __email__ = "philipp.thomann@d-one.ai"
-__version__ = "__version__ = '0.7.0'"
+__version__ = "0.7.0"
 
 from .pipeline import *  # noqa: F401,F403
 from .docker import *  # noqa: F401,F403
