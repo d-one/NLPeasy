@@ -19,6 +19,7 @@ requirements = [
     "beautifulsoup4",
     "vaderSentiment",
     "docker",
+    "jupyter-server-proxy",
 ]
 
 setup_requirements = [
@@ -60,6 +61,11 @@ setup(
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
         "Topic :: Text Processing :: Markup :: HTML",
     ],
+    entry_points={
+        'jupyter_serverproxy_servers': [
+            'kibana = nlpeasy.jupyter_proxy_kibana:setup_jupyter_kibana'
+        ]
+    },
     description="Easy Peasy Language Squeezy",
     install_requires=requirements,
     license="Apache Software License 2.0",
