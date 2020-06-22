@@ -30,7 +30,7 @@ class Kibana(object):
         return f"{self._protocol}://{self._host}:{self._port}{path}"
 
     def alive(self, verbose=True):
-        resp = requests.head(self.kibana_url("api/status"))
+        resp = requests.head(self.kibana_url("api/status"), headers={'kbn-xsrf':'true'})
         return resp.status_code == 200
 
     def show_kibana(
