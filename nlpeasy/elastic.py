@@ -220,15 +220,16 @@ class ElasticStack(object):
             )
         return self._es
 
-    def get_analysis(self, lang="english", synonyms=None):
+    def get_analysis(self, lang="english", synonyms=None, filter_stop=True, filter_stemmer=False):
         filter_names = []
         if lang == "english":
             filter_names.append("english_possessive_stemmer")
         filter_names.append("lowercase")
-        filters = {
-            f"{lang}_stop": {"type": "stop", "stopwords": f"_{lang}_"},
-            f"{lang}_stemmer": {"type": "stemmer", "language": f"{lang}"},
-        }
+        filters = {}
+        if filter_stop:
+            filters[f"{lang}_stop"] = {"type": "stop", "stopwords": f"_{lang}_"}
+        if filter_stemmer:
+            filters[f"{lang}_stemmer"] = {"type": "stemmer", "language": f"{lang}"}
         filter_names.extend(filters.keys())
         if lang == "english":
             filters["english_possessive_stemmer"] = {
