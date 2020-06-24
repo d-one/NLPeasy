@@ -451,6 +451,7 @@ class SpacyEnrichment(MapToNamedTags):
         tags: List[str] = ["ents", "subj", "verb"],
         pos_stats: Union[bool, List[str]] = True,
         vec: Union[bool, str] = False,
+        ents_exclude: List[str] = [ 'CARDINAL', 'DATE', 'MONEY', 'ORDINAL', 'PERCENT', 'QUANTITY', 'TIME', ],
         return_doc: bool = False,
         batch_size: int = 1000,
         n_threads: int = -1,
@@ -464,6 +465,7 @@ class SpacyEnrichment(MapToNamedTags):
         )
         self._nlp = spacy.load(nlp) if isinstance(nlp, str) else nlp
         self._posNum = pos_stats
+        self._ents_exclude = ents_exclude
         self._batch_size = batch_size
         self._n_threads = n_threads
         self._returnDoc = return_doc
@@ -488,7 +490,8 @@ class SpacyEnrichment(MapToNamedTags):
                     ret["entity_" + e.label_] = ret.get("entity_" + e.label_, []) + [
                         e.text
                     ]
-                    ret["ents"] = ret.get("ents", []) + [e.text]
+                    if e.label_ not in self._ents_exclude:
+                        ret["ents"] = ret.get("ents", []) + [e.text]
 
             tok = pd.DataFrame(
                 {"text": w.text, "lemma": w.lemma_, "pos": w.pos_, "dep": w.dep_}
