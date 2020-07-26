@@ -5,6 +5,7 @@
 
 import requests
 import json
+import os
 from . import util
 
 from typing import Optional, Sequence, Union
@@ -12,11 +13,27 @@ from typing import Optional, Sequence, Union
 
 class Kibana(object):
     def __init__(
-        self, host="localhost", port=5601, protocol="http", verify_certs=True, **kwargs
+        self,
+        host="localhost",
+        port=5601,
+        protocol="http",
+        prefix="",
+        external_url=None,
+        verify_certs=True,
+        check_jupyterhub=True,
+        **kwargs,
     ):
         self._host = host
         self._port = port
         self._protocol = protocol
+        self._prefix = prefix
+        if check_jupyterhub and external_url is None and host == "localhost":
+            prefix = os.getenv("JUPYTERHUB_SERVICE_PREFIX")
+            if prefix is not None:
+                external_url = prefix + "/kibana"
+        if external_url is None:
+            external_url = self.kibana_url()
+        self._external_url = external_url
         self._verify_certs = verify_certs
         self._defaultIndexPatternUID = None
         self._defaultSearchUID = None
@@ -27,10 +44,19 @@ class Kibana(object):
         if path and path[0] != "/":
             # TODO Warn about missing initial '/'?
             path = "/" + path
-        return f"{self._protocol}://{self._host}:{self._port}{path}"
+        return f"{self._protocol}://{self._host}:{self._port}{self._prefix}{path}"
+
+    def external_kibana_url(self, path=""):
+        # TODO maybe URLEncode path?
+        if path and path[0] != "/":
+            # TODO Warn about missing initial '/'?
+            path = "/" + path
+        return f"{self._external_url}{path}"
 
     def alive(self, verbose=True):
-        resp = requests.head(self.kibana_url("api/status"), headers={'kbn-xsrf':'true'})
+        resp = requests.head(
+            self.kibana_url("api/status"), headers={"kbn-xsrf": "true"}
+        )
         return resp.status_code == 200
 
     def show_kibana(
@@ -55,7 +81,7 @@ class Kibana(object):
             how = "jupyter" if util.IS_JUPYTER else "webbrowser"
             # TODO can we figure out "non-interactive" to put how='print' then?
         how = how if isinstance(how, list) else [how]
-        url = self.kibana_url(*args, **kwargs)
+        url = self.external_kibana_url(*args, **kwargs)
         if "print" in how:
             print(f"Open: {url}")
         if "webbrowser" in how:
@@ -68,10 +94,10 @@ class Kibana(object):
             return HTML(self._repr_html_())
 
     def __repr__(self):
-        return f"Kibana on {self.kibana_url()}"
+        return f"Kibana on {self.external_kibana_url()}"
 
     def _repr_html_(self):
-        return f"Kibana on <a href='{self.kibana_url()}'>{self.kibana_url()}</a>"
+        return f"Kibana on <a href='{self.external_kibana_url()}'>{self.external_kibana_url()}</a>"
 
     def get_kibana_saved_objects(self, type="index-pattern", search=None, fields=None):
         type = "&type=" + type if type else ""
