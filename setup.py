@@ -62,10 +62,17 @@ setup(
         "Topic :: Text Processing :: Markup :: HTML",
     ],
     entry_points={
-        'jupyter_serverproxy_servers': [
-            'kibana = nlpeasy.jupyter_proxy_kibana:setup_jupyter_kibana'
+        "jupyter_serverproxy_servers": [
+            "kibana = nlpeasy.jupyter_proxy_kibana:setup_jupyter_kibana"
         ]
     },
+    data_files=[
+        # like `jupyter serverextension enable --sys-prefix`
+        (
+            "etc/jupyter/jupyter_notebook_config.d",
+            ["nlpeasy/etc/nlpeasy-serverextension.json"],
+        ),
+    ],
     description="Easy Peasy Language Squeezy",
     install_requires=requirements,
     license="Apache Software License 2.0",

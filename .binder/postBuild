@@ -1,0 +1,46 @@
+#!/bin/bash
+set -x
+
+# this file gets executed in the GIT-root directory!
+
+export ELK_VERSION=${ELK_VERSION:-7.7.1}
+export SHARE_DIR=${SHARE_DIR:-~/opt}
+
+mkdir -p $SHARE_DIR
+cd $SHARE_DIR
+
+if [ ! -d $SHARE_DIR/elasticsearch-$ELK_VERSION ]; then
+    curl https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-oss-$ELK_VERSION-linux-x86_64.tar.gz | tar xz
+fi
+if [ ! -d $SHARE_DIR/kibana-$ELK_VERSION-linux-x86_64 ]; then
+    curl https://artifacts.elastic.co/downloads/kibana/kibana-oss-$ELK_VERSION-linux-x86_64.tar.gz | tar xz
+fi
+
+ln -s elasticsearch-$ELK_VERSION elasticsearch
+ln -s kibana-$ELK_VERSION-linux-x86_64 kibana
+
+## for testing
+#cd
+#pip install . #git+https://github.com/d-one/nlpeasy
+#jupyter labextension install -y --log-level=INFO --minimize=False @jupyterlab/server-proxy
+#exit 0
+#cd $SHARE_DIR
+#
+if [ ! -d $SHARE_DIR/elastic-data/elastic-data ]; then
+    curl -LO https://github.com/d-one/NLPeasy-workshop/releases/download/v0.2/elastic-data.tar.gz && tar xzvf elastic-data.tar.gz
+fi
+
+cd
+
+
+mkdir bin
+ln -s $SHARE_DIR/elasticsearch/bin/elasticsearch bin/
+ln -s $SHARE_DIR/kibana/bin/kibana bin/
+
+python -m spacy download en_core_web_sm
+python -m spacy download en_core_web_md
+python -m spacy download de_core_news_md
+
+pip install .
+
+jupyter labextension install -y --log-level=INFO --minimize=False @jupyterlab/server-proxy

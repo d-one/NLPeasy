@@ -5,6 +5,7 @@ include LICENSE
 include README.rst
 
 include nlpeasy/icons/*.svg
+include nlpeasy/etc/*.json
 
 recursive-include tests *
 recursive-exclude * __pycache__

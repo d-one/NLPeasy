@@ -1,0 +1,16 @@
+#!/bin/bash
+
+export SHARE_DIR=${SHARE_DIR:-~/opt}
+
+echo -Xms600m >> $SHARE_DIR/elasticsearch/config/jvm.options
+echo -Xmx600m >> $SHARE_DIR/elasticsearch/config/jvm.options
+
+# Start elasticsearch and point it to the downloaded elastic-data directory
+$SHARE_DIR/elasticsearch/bin/elasticsearch -d -p $SHARE_DIR/pid.elastic -E path.data=$SHARE_DIR/elastic-data/elastic-data/
+
+# Only at runtime the JUPYTERHUB_SERVICE_PREFIX is known so set it now for kibana
+echo server.basePath: "${JUPYTERHUB_SERVICE_PREFIX:-/}"kibana >> $SHARE_DIR/kibana/config/kibana.yml
+
+$SHARE_DIR/kibana/bin/kibana  --cpu.cgroup.path.override=/ --cpuacct.cgroup.path.override=/ &
+
+exec "$@"
