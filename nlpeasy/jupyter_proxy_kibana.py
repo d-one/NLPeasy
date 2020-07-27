@@ -36,11 +36,18 @@ def load_jupyter_server_extension(nbapp: NotebookApp):
     # for the following we actually need that jupyter-server-proxy's load_jupyter_server_extension
     # already has run - fortunately in alphabetical order jupyter comes before nlp ;-)
 
+    base_url = nbapp.web_app.settings['base_url']
+    match_prefix = base_url + "kibana/"
     rules = nbapp.web_app.default_router.rules
 
+    # nbapp.log.info(f"nlpeasy: found {len(rules)} default_router rules and searching for prefix {match_prefix}")
+
     for r1 in rules:
+        # nbapp.log.info(f"nlpeasy: found {len(r1.target.rules)} target rules in router rule")
         for r in r1.target.rules:
-            if r.matcher.regex.pattern.startswith("/kibana/"):
+            # nbapp.log.info(f"nlpeasy: found rule with pattern {r.matcher.regex.pattern}")
+            if r.matcher.regex.pattern.startswith(match_prefix):
+                nbapp.log.info(f"nlpeasy: monkey patching rule with pattern {r.matcher.regex.pattern}")
                 global _kibana_routing_rule
                 r.target = LocalProxyPortHandler  # <class 'jupyter_server_proxy.config._make_serverproxy_handler.<locals>._Proxy'>
                 r.target_kwargs = {
