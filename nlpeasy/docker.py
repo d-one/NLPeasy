@@ -12,7 +12,7 @@ try:
     import docker as dockerpy
 except ImportError:
     raise Exception(
-        "Please instell the python docker package for start_elastic_on_docker to work: pip install docker"
+        "Please instell the python docker package for start_elastic_on_docker to work:\npip install docker\n  or\nconda install -c conda-forge docker-py"
     )
 
 
@@ -27,7 +27,7 @@ def start_elastic_on_docker(
     kibana_plugin_directory=None,
     elastic_port=None,
     kibana_port=None,
-    client=dockerpy.from_env(),
+    client=None,
     force_pull=False,
     rm=True,
     set_as_default_elk=True,
@@ -36,6 +36,9 @@ def start_elastic_on_docker(
     >>> stack = start_elastic_on_docker('mynlpstack', version='6.3.2')
     """
     assert kibana_plugin_directory is None
+
+    if client is None:
+        client = dockerpy.from_env()
 
     el_im, ki_im = [
         f"docker.elastic.co/{i}/{i}-oss:{elk_version}"
@@ -130,7 +133,9 @@ def start_elastic_on_docker(
     return elk
 
 
-def get_network(network, client=dockerpy.from_env(), create=True):
+def get_network(network, client=None, create=True):
+    if client is None:
+        client = dockerpy.from_env()
     nets = [n for n in client.networks.list(names=[network]) if n.name == network]
     if len(nets) == 1:
         return nets[0]
@@ -140,12 +145,16 @@ def get_network(network, client=dockerpy.from_env(), create=True):
         return None
 
 
-def get_container(name, client=dockerpy.from_env(), raise_error=None):
+def get_container(name, client=None, raise_error=None):
+    if client is None:
+        client = dockerpy.from_env()
     c = [_ for _ in client.containers.list(filters={"name": name}) if _.name == name]
     return c[0] if len(c) == 1 else None
 
 
-def container_running(name, client=dockerpy.from_env(), raise_error=None):
+def container_running(name, client=None, raise_error=None):
+    if client is None:
+        client = dockerpy.from_env()
     c = get_container(name, client=client)
     if c is not None and c.status == "running":
         return True
