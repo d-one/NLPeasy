@@ -66,6 +66,7 @@ class Pipeline(object):
         text_cols: Optional[List[str]] = None,
         tag_cols: Optional[List[str]] = None,
         num_cols: Optional[List[str]] = None,
+        timestamp_cols: Optional[List[str]] = None,
         geopoint_cols: Optional[List[str]] = None,
         id_col: Optional[str] = None,
         date_col: Optional[str] = None,
@@ -80,6 +81,7 @@ class Pipeline(object):
         self._textCols = text_cols or []
         self._tagCols = tag_cols or []
         self._numCols = num_cols or []
+        self._timestamp_cols = timestamp_cols or []
         self._geoPointCols = geopoint_cols or []
         self._ignoreUploadCols = []
         self._dateCol = date_col
@@ -108,6 +110,7 @@ class Pipeline(object):
                 self._doctype,
                 text_cols=self._textCols,
                 tag_cols=self._tagCols,
+                timestamp_cols=self._timestamp_cols,
                 geopoint_cols=self._geoPointCols,
                 lang=self._lang,
                 **kwargs,
@@ -167,6 +170,7 @@ class Pipeline(object):
         self,
         texts: pd.DataFrame,
         write_elastic: Optional[bool] = None,
+        setup_elastic: Optional[bool] = None,
         batchsize: int = 1000,
         return_processed: bool = True,
         progbar: bool = True,
@@ -199,7 +203,10 @@ class Pipeline(object):
         """
         if write_elastic is None:
             write_elastic = self.elk is not None
-        if write_elastic:
+        if setup_elastic is None:
+            setup_elastic = write_elastic
+            # TODO by default only setup if index does not exist yet
+        if setup_elastic:
             self.setup_elastic()
         results = []
 
@@ -475,12 +482,12 @@ class SpacyEnrichment(MapToNamedTags):
         docs = []
         self.tic("spacy make iter")
         spacy_iter = self._nlp.pipe(
-            x.values, batch_size=self._batch_size, n_threads=self._n_threads
+            x.values, batch_size=self._batch_size, n_process=self._n_threads
         )
         self.toc()
         for doc in self.ticwrap(spacy_iter, "spacy iter"):
             self.tic("process spacy docs")
-            ret = {"wc": len(doc)}
+            ret = {"wc": len(doc), "sentence_count": len(list(doc.sents))}
             if ret["wc"] == 0:
                 docs.append(ret)
                 continue

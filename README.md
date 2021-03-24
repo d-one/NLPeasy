@@ -43,7 +43,7 @@ import nlpeasy as ne
 from sklearn.datasets import fetch_20newsgroups
 
 # connect to running elastic or else start an Open Source stack on your docker
-elk = ne.connect_elastic(docker_prefix='nlp', elk_version='7.4.0', mount_volume_prefix=None)
+elk = ne.connect_elastic(docker_prefix='nlp', elk_version='7.10.2', mount_volume_prefix=None)
 # If it is started on docker it will on the first time pull the images (1.3GB)!
 # Setting mountVolumePrefix="./elastic-data/" would keep the data of elastic in your
 # filesystems and then the data survives container restarts

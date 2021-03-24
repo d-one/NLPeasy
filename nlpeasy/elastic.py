@@ -18,7 +18,7 @@ def connect_elastic(
     elastic_port: Optional[int] = None,
     kibana_port: Optional[int] = None,
     kibana_host: str = None,
-    elk_version: str = "7.1.1",
+    elk_version: str = "7.10.2",
     mount_volume_prefix: Optional[str] = None,
     verbose: bool = True,
     raise_error: bool = False,
@@ -255,6 +255,7 @@ class ElasticStack(object):
         create=True,
         text_cols=[],
         tag_cols=[],
+        timestamp_cols=[],
         geopoint_cols=[],
         synonyms=[],
         lang="english",
@@ -272,6 +273,8 @@ class ElasticStack(object):
             }
         for k in tag_cols:
             properties[k] = {"type": "keyword"}
+        for k in timestamp_cols:
+            properties[k] = {"type": "date"}
         for k in geopoint_cols:
             properties[k] = {"type": "geo_point"}
         properties["suggest"] = {"type": "completion"}
