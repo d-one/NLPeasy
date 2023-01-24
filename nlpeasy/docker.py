@@ -20,6 +20,7 @@ def start_elastic_on_docker(
     prefix,
     error_if_exists=False,
     elk_version="latest",
+    use_oss=True,
     elastic_password="nlp is fun",
     mount_volume_prefix=Path("./elastic-data/"),
     mount_type="bind",
@@ -40,8 +41,11 @@ def start_elastic_on_docker(
     if client is None:
         client = dockerpy.from_env()
 
+    if use_oss:
+        if elk_version is None or elk_version == 'latest':
+            elk_version = '7.10.2'
     el_im, ki_im = [
-        f"docker.elastic.co/{i}/{i}-oss:{elk_version}"
+        f"docker.elastic.co/{i}/{i}{'-oss' if use_oss else ''}:{elk_version}"
         for i in ["elasticsearch", "kibana"]
     ]
     if force_pull:
@@ -61,8 +65,14 @@ def start_elastic_on_docker(
         "cluster.name=docker-cluster",
         "bootstrap.memory_lock=true",
         '"ES_JAVA_OPTS=-Xms512m -Xmx512m"',
+        "xpack.security.enabled=false"
     ]
-    if mount_volume_prefix is not None:
+    if isinstance(mount_volume_prefix, str) and mount_volume_prefix.startswith("#"):
+        el_mnts = [dockerpy.types.Mount(
+                "/usr/share/elasticsearch/data", mount_volume_prefix[1:], type='volume'
+            )]
+        ki_mnts = []
+    elif mount_volume_prefix is not None:
         p = Path(mount_volume_prefix)
         if not p.exists():
             if mkdir:

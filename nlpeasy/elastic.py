@@ -212,8 +212,9 @@ class ElasticStack(object):
         if self._es is None:
             host = {
                 "host": self._host,
-                "port": self._elasticPort,
-                "use_ssl": self._protocol == "https",
+                "port": int(self._elasticPort),
+                "scheme": self._protocol,
+                # 'path_prefix', 'url_prefix',
             }
             self._es = elasticsearch.Elasticsearch(
                 [host], verify_certs=self._verify_certs, **self._elasticKwargs
@@ -324,7 +325,7 @@ class ElasticStack(object):
             self.es.indices.create(index=index, body=body)  # , ignore=[]
             return body
         else:
-            self.es.indices.put_mapping(index=index, doc_type=doctype, body=mapping)
+            self.es.indices.put_mapping(index=index, body=mapping)
 
     def load_docs(
         self,
@@ -354,7 +355,7 @@ class ElasticStack(object):
                 if suggest_col and suggest_col in doc:
                     doc["suggest"] = doc[suggest_col]
                 try:
-                    self.es.index(index=index, doc_type=doctype, id=id_col[i], body=doc)
+                    self.es.index(index=index, id=id_col[i], body=doc)
                 except elasticsearch.ElasticsearchException as ex:
                     print(ex)
                     print(doc)

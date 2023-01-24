@@ -11,5 +11,5 @@ spacy
 elasticsearch
 requests
 beautifulsoup4
-docker
+docker-py
 vaderSentiment
