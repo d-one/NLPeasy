@@ -67,7 +67,7 @@ def start_elastic_on_docker(
         "discovery.type=single-node",
         "cluster.name=docker-cluster",
         "bootstrap.memory_lock=true",
-        '"ES_JAVA_OPTS=-Xms512m -Xmx512m"',
+        "ES_JAVA_OPTS=-Xms512m -Xmx512m",
         "xpack.security.enabled=false"
     ]
     if isinstance(mount_volume_prefix, str) and mount_volume_prefix.startswith("#"):
