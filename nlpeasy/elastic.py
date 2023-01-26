@@ -369,8 +369,11 @@ class ElasticStack(object):
                     print(doc)
                     print("=" * 80)
 
-    def truncate(self, index, doctype="text"):
+    def truncate(self, index):
         self._es.delete_by_query(index, {"query": {"match_all": {}}})
+
+    def delete_index(self, index):
+        self._es.indices.delete(index=index)
 
     def show_kibana(self, how=None, *args, **kwargs):
         """Opens the Kibana UI either by opening it in the default webbrowser or by showing the URL.

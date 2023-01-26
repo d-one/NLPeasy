@@ -175,6 +175,7 @@ class Pipeline(object):
         texts: pd.DataFrame,
         write_elastic: Optional[bool] = None,
         setup_elastic: Optional[bool] = None,
+        if_index_exists = "error",
         batchsize: int = 1000,
         return_processed: bool = True,
         progbar: bool = True,
@@ -187,6 +188,12 @@ class Pipeline(object):
             The texts to process. Should provide all the needed columns.
         write_elastic :
             If ``True`` will write to ``self.elk`` ElasticSearch.
+            If ``(None)`` then this is only done if ``self.elk`` is not ``None``
+        if_index_exists :
+            Only used if ``write_elastic`` is ``True``. If the index allready exists:
+            If ``"error"`` (default) it raises an Exception.
+            If ``"overwrite"`` the existing index is deleted.
+            If ``"append"`` the existing index is kept and no mappings are written (ToDo still write new mappings?).
             If ``(None)`` then this is only done if ``self.elk`` is not ``None``
         batchsize :
             Number of rows to process and possibly upload together.
@@ -207,9 +214,30 @@ class Pipeline(object):
         """
         if write_elastic is None:
             write_elastic = self.elk is not None
+        assert not write_elastic or self.elk is not None, 'if write_elastic is True, there has to be a self.elk'
         if setup_elastic is None:
             setup_elastic = write_elastic
             # TODO by default only setup if index does not exist yet
+        if self._vec_types is None:
+            self._vec_types = {}
+            for _ in self._vec_cols:
+                self._vec_types[_] = {
+                    "dims": len(texts[_].iloc[0]),
+                    "similarity": "dot_product" 
+                }
+        if write_elastic and self.elk.es.indices.exists(index=self._index):
+            _ = if_index_exists.lower()
+            if _ == 'append':
+                print(f"index {self._index} already exists - thus we only index and do not set the mapping")
+                setup_elastic = False
+            elif _ == 'overwrite':
+                print(f"index {self._index} already exists - we will delete the previous one")
+                self.elk.delete_index(self._index)
+            elif _ == 'error':
+                raise Exception(f"index {self._index} already exists: either change the name of the index "
+                                "or use if_index_exists='append' or if_index_exists='overwrite'.")
+            else:
+                raise Exception(f"if_index_exists has to be one of 'append', 'overwrite', or 'error', instead you used: {if_index_exists!r}")
         if setup_elastic:
             self.setup_elastic()
         results = []
