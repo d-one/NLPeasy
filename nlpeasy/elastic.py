@@ -111,6 +111,8 @@ def connect_elastic(
                 prefix=docker_prefix,
                 elk_version=elk_version,
                 mount_volume_prefix=mount_volume_prefix,
+                elastic_port=elastic_port,
+                kibana_port=kibana_port,
                 kibana_path=kibana_path,
                 kibana_public_path=kibana_public_path,
                 **kwargs,

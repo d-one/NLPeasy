@@ -153,6 +153,8 @@ def start_elastic_on_docker(
     elk = elastic.ElasticStack(elastic_port=elastic_port, kibana_port=kibana_port)
     if set_as_default_elk:
         elastic.set_default_elk(elk)
+    if kibana_path is not None:
+        elk.kibana._prefix = kibana_path
 
     return elk
 
