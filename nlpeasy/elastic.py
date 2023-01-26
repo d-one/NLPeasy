@@ -256,6 +256,7 @@ class ElasticStack(object):
         create=True,
         text_cols=[],
         tag_cols=[],
+        vec_types={},
         timestamp_cols=[],
         geopoint_cols=[],
         synonyms=[],
@@ -274,8 +275,15 @@ class ElasticStack(object):
             }
         for k in tag_cols:
             properties[k] = {"type": "keyword"}
+        for k, v in vec_types.items():
+            properties[k] = {"type": "keyword"}
         for k in timestamp_cols:
-            properties[k] = {"type": "date"}
+            properties[k] = {
+                    "type": "dense_vector",
+                    "dims": v['dims'],
+                    "index": True,
+                    "similarity": v.get("similarity", "dot_product") 
+                    }
         for k in geopoint_cols:
             properties[k] = {"type": "geo_point"}
         properties["suggest"] = {"type": "completion"}

@@ -66,6 +66,7 @@ class Pipeline(object):
         text_cols: Optional[List[str]] = None,
         tag_cols: Optional[List[str]] = None,
         num_cols: Optional[List[str]] = None,
+        vec_cols: Optional[List[str]] = None,
         timestamp_cols: Optional[List[str]] = None,
         geopoint_cols: Optional[List[str]] = None,
         id_col: Optional[str] = None,
@@ -81,6 +82,8 @@ class Pipeline(object):
         self._textCols = text_cols or []
         self._tagCols = tag_cols or []
         self._numCols = num_cols or []
+        self._vec_cols = vec_cols or []
+        self._vec_types = None
         self._timestamp_cols = timestamp_cols or []
         self._geoPointCols = geopoint_cols or []
         self._ignoreUploadCols = []
@@ -110,6 +113,7 @@ class Pipeline(object):
                 self._doctype,
                 text_cols=self._textCols,
                 tag_cols=self._tagCols,
+                vec_types=self._vec_types,
                 timestamp_cols=self._timestamp_cols,
                 geopoint_cols=self._geoPointCols,
                 lang=self._lang,
