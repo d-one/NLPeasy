@@ -5,6 +5,7 @@
 
 
 from pathlib import Path
+from typing import Optional
 
 from . import elastic
 
@@ -28,6 +29,8 @@ def start_elastic_on_docker(
     kibana_plugin_directory=None,
     elastic_port=None,
     kibana_port=None,
+    kibana_path: Optional[str] = None,
+    kibana_public_path: Optional[str] =None,
     client=None,
     force_pull=False,
     rm=True,
@@ -119,6 +122,17 @@ def start_elastic_on_docker(
         f"ELASTICSEARCH_URL=http://{el_name}:9200",
         f"ELASTICSEARCH_HOSTS=http://{el_name}:9200",
     ]
+    if kibana_path is not None:
+        if len(kibana_path) and kibana_path[-1] == '/':
+            kibana_path = kibana_path[-1]
+            print("kibana_path must not end in a slash (/), removing it to "+kibana_path)
+        ki_env.append( f"SERVER_BASEPATH={kibana_path}" )
+        ki_env.append( f"SERVER_REWRITEBASEPATH=true" )
+    if kibana_public_path is not None:
+        if kibana_path is not None and not kibana_public_path.endswith(kibana_path):
+            kibana_public_path = kibana_public_path + kibana_path
+            print("kibana_public_path must include the kibana_path so adding, kibana_public_path="+kibana_public_path)
+        ki_env.append( f"SERVER_PUBLICBASEURL={kibana_public_path}" )
     if error_if_exists or not len(client.containers.list(filters={"name": ki_name})):
         client.containers.run(
             ki_im,

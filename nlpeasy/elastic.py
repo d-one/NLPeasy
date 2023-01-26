@@ -18,6 +18,8 @@ def connect_elastic(
     elastic_port: Optional[int] = None,
     kibana_port: Optional[int] = None,
     kibana_host: str = None,
+    kibana_path: Optional[str] = None,
+    kibana_public_path: Optional[str] =None,
     elk_version: str = "7.10.2",
     mount_volume_prefix: Optional[str] = None,
     verbose: bool = True,
@@ -109,6 +111,8 @@ def connect_elastic(
                 prefix=docker_prefix,
                 elk_version=elk_version,
                 mount_volume_prefix=mount_volume_prefix,
+                kibana_path=kibana_path,
+                kibana_public_path=kibana_public_path,
                 **kwargs,
             )
         else:
