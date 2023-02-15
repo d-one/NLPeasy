@@ -281,9 +281,9 @@ class ElasticStack(object):
             }
         for k in tag_cols:
             properties[k] = {"type": "keyword"}
-        for k, v in vec_types.items():
-            properties[k] = {"type": "keyword"}
         for k in timestamp_cols:
+            properties[k] = {"type": "date"}
+        for k, v in vec_types.items():
             properties[k] = {
                     "type": "dense_vector",
                     "dims": v['dims'],
