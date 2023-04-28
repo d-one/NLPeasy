@@ -288,7 +288,7 @@ class ElasticStack(object):
                     "type": "dense_vector",
                     "dims": v['dims'],
                     "index": True,
-                    "similarity": v.get("similarity", "dot_product") 
+                    "similarity": v.get("similarity", "cosine") 
                     }
         for k in geopoint_cols:
             properties[k] = {"type": "geo_point"}

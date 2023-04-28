@@ -223,7 +223,7 @@ class Pipeline(object):
             for _ in self._vec_cols:
                 self._vec_types[_] = {
                     "dims": len(texts[_].iloc[0]),
-                    "similarity": "dot_product" 
+                    "similarity": "cosine",
                 }
         if write_elastic and self.elk.es.indices.exists(index=self._index):
             _ = if_index_exists.lower()
