@@ -370,9 +370,12 @@ class ElasticStack(object):
                     doc["suggest"] = doc[suggest_col]
                 try:
                     self.es.index(index=index, id=id_col[i], body=doc)
-                except elasticsearch.ElasticsearchException as ex:
+                except Exception as ex:
                     print(ex)
-                    print(doc)
+                    print("=" * 80)
+                    print(ex.info)
+                    print("=" * 80)
+                    print(ex.error)
                     print("=" * 80)
 
     def truncate(self, index):
