@@ -263,7 +263,10 @@ class Pipeline(object):
         self.toc()
         # return results
         self.tic("global", "concat results")
-        results = pd.concat(results, sort=False)
+        if return_processed:
+            results = pd.concat(results, sort=False)
+        else:
+            results = None
         self.toc()
 
         self.tic("global", "min_max_calc")
@@ -271,8 +274,9 @@ class Pipeline(object):
         cols = self._numCols.copy()
         if self._dateCol is not None:
             cols.append(self._dateCol)
-        for i in cols:
-            self._min_max[i] = (results.loc[:, i].min(), results.loc[:, i].max())
+        if return_processed:
+            for i in cols:
+                self._min_max[i] = (results.loc[:, i].min(), results.loc[:, i].max())
         self.toc()
 
         return results
