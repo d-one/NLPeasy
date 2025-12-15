@@ -1,0 +1,1 @@
+from shared.logger import logger  # noqa: F401

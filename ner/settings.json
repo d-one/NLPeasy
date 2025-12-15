@@ -1,0 +1,76 @@
+{
+	"logging": {
+		"level": 10,
+		"format": "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <yellow>{process}</yellow> |<level>{level: <8}</level> | <cyan>{name}:<cyan>{extra[classname]}</cyan>:</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
+		"loggers_to_loguru": ["uvicorn", "uvicorn.access", "uvicorn.error"]
+	},
+	"process_inference": {
+		"preprocess_strategy": "dump_json",
+		"chunk_stride": 400,
+		"max_chunks": 4
+	},
+	"dataset": {
+		"dataset_huggingface_name": "GateNLP/broad_twitter_corpus",
+		"dataset_raw_dataframe_filepath": "/Users/marioslioutas/ner/artefacts/datasets/distilbert-base-cased/raw",
+		"dataset_raw_label_column": "ner_tags",
+		"dataset_raw_text_column": "tokens",
+		"dataset_raw_split_column": "split",
+		"dataset_raw_converted_path": "/Users/marioslioutas/ner/artefacts/datasets/distilbert-base-cased/raw",
+		"dataset_processed_input_ids_name": "input_ids",
+		"dataset_processed_attention_mask_name": "attention_mask",
+		"dataset_processed_labels_name": "labels",
+		"dataset_processed_subword_tokens_name": "subword_tokens",
+		"dataset_processed_path": "/Users/marioslioutas/ner/artefacts/datasets/distilbert-base-cased/processed"
+
+	},
+	"tokenizer": {
+		"model_name": "distilbert-base-cased",
+		"max_length": 512,
+		"padding": "do_not_pad",
+		"add_special_tokens": true,
+		"return_offsets_mapping": true,
+		"load_from_local": true,
+		"local_tokenizer_path": "/Users/marioslioutas/ner/artefacts/bert_models/distilbert-base-cased",
+		"truncation": true
+	},
+	"model": {
+		"model_name": "distilbert-base-cased",
+		"batch_size": 16,
+		"num_workers": 0,
+		"shuffle": true,
+		"pin_memory": false,
+		"drop_last": false,
+		"learning_rate": 3e-5,
+		"weight_decay": 0.05,
+		"adam_epsilon": 1e-8,
+		"warmup_steps": 0,
+		"scheduler_T0": 3,
+		"scheduler_T_mult": 2,
+		"scheduler_eta_min": 1e-6,
+		"class_weights": [152672, 2955, 5955, 2309, 3201, 1877, 1899],
+		"max_epochs": 25,
+		"seed": 42,
+		"patience": 10,
+		"task": "multiclass",
+		"load_from_local": true,
+		"local_model_path": "/Users/marioslioutas/ner/artefacts/bert_models/distilbert-base-cased",
+		"local_model_path_finetuned": "/Users/marioslioutas/ner/artefacts/finetuned_checkpoints/distilbert-base-cased",
+		"num_labels": 7,
+		"labels_mapping": {
+			"O": 0,
+			"B-PER": 1,
+			"I-PER": 2,
+			"B-ORG": 3,
+			"I-ORG": 4,
+			"B-LOC": 5,
+			"I-LOC": 6
+		},
+		"accelerator": "mps",
+		"devices": 1,
+		"deterministic": false,
+		"precision": "32",
+		"gradient_clip_val": 1.0,
+		"accumulate_grad_batches": 1,
+		"log_every_n_steps": 50
+	}
+}
